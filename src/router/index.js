@@ -1,6 +1,14 @@
 import AppLayout from '@/layout/AppLayout.vue';
 import { createRouter, createWebHistory } from 'vue-router';
 
+const Login = () => import('@/views/Login.vue');
+const Produk = () => import('@/views/Produk.vue');
+const BobotProduk = () => import('@/views/BobotProduk.vue');
+const TipePreferensi = () => import('@/views/TipePreferensi.vue');
+const Kriteria = () => import('@/views/Kriteria.vue');
+const SubKriteria = () => import('@/views/SubKriteria.vue');
+const BobotSubKriteria = () => import('@/views/BobotSubKriteria.vue');
+
 const router = createRouter({
     history: createWebHistory(),
     routes: [
@@ -17,94 +25,34 @@ const router = createRouter({
                     }
                 },
                 {
-                    path: '/uikit/formlayout',
-                    name: 'formlayout',
-                    component: () => import('@/views/uikit/FormLayout.vue')
+                    path: '/produk',
+                    name: 'produk',
+                    component: Produk
                 },
                 {
-                    path: '/uikit/input',
-                    name: 'input',
-                    component: () => import('@/views/uikit/InputDoc.vue')
+                    path: '/bobot-produk',
+                    name: 'bobot-produk',
+                    component: BobotProduk
                 },
                 {
-                    path: '/uikit/button',
-                    name: 'button',
-                    component: () => import('@/views/uikit/ButtonDoc.vue')
+                    path: '/kriteria',
+                    name: 'kritearia',
+                    component: Kriteria
                 },
                 {
-                    path: '/uikit/table',
-                    name: 'table',
-                    component: () => import('@/views/uikit/TableDoc.vue')
+                    path: '/sub-kriteria',
+                    name: 'sub-kriteria',
+                    component: SubKriteria
                 },
                 {
-                    path: '/uikit/list',
-                    name: 'list',
-                    component: () => import('@/views/uikit/ListDoc.vue')
+                    path: '/tipe-preferensi',
+                    name: 'tipe-preferensi',
+                    component: TipePreferensi
                 },
                 {
-                    path: '/uikit/tree',
-                    name: 'tree',
-                    component: () => import('@/views/uikit/TreeDoc.vue')
-                },
-                {
-                    path: '/uikit/panel',
-                    name: 'panel',
-                    component: () => import('@/views/uikit/PanelsDoc.vue')
-                },
-                {
-                    path: '/uikit/overlay',
-                    name: 'overlay',
-                    component: () => import('@/views/uikit/OverlayDoc.vue')
-                },
-                {
-                    path: '/uikit/media',
-                    name: 'media',
-                    component: () => import('@/views/uikit/MediaDoc.vue')
-                },
-                {
-                    path: '/uikit/message',
-                    name: 'message',
-                    component: () => import('@/views/uikit/MessagesDoc.vue')
-                },
-                {
-                    path: '/uikit/file',
-                    name: 'file',
-                    component: () => import('@/views/uikit/FileDoc.vue')
-                },
-                {
-                    path: '/uikit/menu',
-                    name: 'menu',
-                    component: () => import('@/views/uikit/MenuDoc.vue')
-                },
-                {
-                    path: '/uikit/charts',
-                    name: 'charts',
-                    component: () => import('@/views/uikit/ChartDoc.vue')
-                },
-                {
-                    path: '/uikit/misc',
-                    name: 'misc',
-                    component: () => import('@/views/uikit/MiscDoc.vue')
-                },
-                {
-                    path: '/uikit/timeline',
-                    name: 'timeline',
-                    component: () => import('@/views/uikit/TimelineDoc.vue')
-                },
-                {
-                    path: '/pages/empty',
-                    name: 'empty',
-                    component: () => import('@/views/pages/Empty.vue')
-                },
-                {
-                    path: '/pages/crud',
-                    name: 'crud',
-                    component: () => import('@/views/pages/Crud.vue')
-                },
-                {
-                    path: '/documentation',
-                    name: 'documentation',
-                    component: () => import('@/views/pages/Documentation.vue')
+                    path: '/bobot-sub-kriteria',
+                    name: 'bobot-sub-kriteria',
+                    component: BobotSubKriteria
                 }
             ]
         },
@@ -118,12 +66,6 @@ const router = createRouter({
             name: 'notfound',
             component: () => import('@/views/pages/NotFound.vue')
         },
-        // {
-        //     path: '/auth/login',
-        //     name: 'login',
-        //     component: () => import('@/views/pages/auth/Login.vue')
-        // },
-
         {
             path: '/auth/access',
             name: 'accessDenied',
@@ -137,7 +79,7 @@ const router = createRouter({
         {
             path: '/login',
             name: 'login',
-            component: () => import('@/views/Login.vue')
+            component: Login
         }
     ]
 });
@@ -146,14 +88,11 @@ router.beforeEach((to, from, next) => {
     if (to.meta.requiresAuth) {
         const token = localStorage.getItem('accessToken');
         if (token) {
-            // User is authenticated, proceed to the route
             next();
         } else {
-            // User is not authenticated, redirect to login
             next('/login');
         }
     } else {
-        // Non-protected route, allow access
         next();
     }
 });

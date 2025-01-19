@@ -1,8 +1,31 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
+import { APIAuth } from '@/service/AuthService';
+import { useUserStore } from '@/store/UserStore';
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import AppConfigurator from './AppConfigurator.vue';
 
 const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
+const isLogout = ref(false);
+const router = useRouter();
+const userStore = useUserStore();
+
+function modalLogout() {
+    isLogout.value = true;
+}
+
+function close() {
+    isLogout.value = false;
+}
+
+async function logout() {
+    await APIAuth.logout();
+    userStore.logout();
+    localStorage.removeItem('accessToken');
+    isLogout.value = false;
+    router.push('/login');
+}
 </script>
 
 <template>
@@ -61,20 +84,53 @@ const { toggleMenu, toggleDarkMode, isDarkTheme } = useLayout();
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
                     <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-calendar"></i>
-                        <span>Calendar</span>
-                    </button>
-                    <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-inbox"></i>
-                        <span>Messages</span>
-                    </button>
-                    <button type="button" class="layout-topbar-action">
-                        <!-- <Dropdown v-model="selectedCity" :options="cities" optionLabel="name" placeholder="Select a City" class="w-full md:w-14rem" /> -->
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
+                    </button>
+                    <button @click="modalLogout()" type="button" class="layout-topbar-action">
+                        <i class="pi pi-sign-out"></i>
+                        <span>Logout</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <Dialog header="Logout" v-model:visible="isLogout" :breakpoints="{ '960px': '75vw' }" :style="{ width: '30vw' }" :modal="true">
+        <div class="flex flex-col items-center h-36 mt-10">
+            <i class="warning-icon pi pi-exclamation-triangle"></i>
+            <p class="leading-normal m-0 text-2xl">Apakah anda yankin ingin keluar ?</p>
+        </div>
+        <template #footer>
+            <Button label="Tidak" severity="warn" text @click="close" />
+            <Button label="Logout" severity="danger" @click="logout" />
+        </template>
+    </Dialog>
 </template>
+
+<style scoped>
+.warning-icon {
+    font-size: 5em;
+    width: 100%;
+    color: red;
+    display: flex;
+    justify-content: center;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-30px);
+    }
+    60% {
+        transform: translateY(-15px);
+    }
+}
+</style>

@@ -1,4 +1,7 @@
-<script setup></script>
+<script setup>
+import { useUserStore } from './store/UserStore';
+const userStore = useUserStore();
+</script>
 
 <template>
     <router-view />

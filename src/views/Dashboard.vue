@@ -4,6 +4,7 @@ import NotificationsWidget from '@/components/dashboard/NotificationsWidget.vue'
 import RecentSalesWidget from '@/components/dashboard/RecentSalesWidget.vue';
 import RevenueStreamWidget from '@/components/dashboard/RevenueStreamWidget.vue';
 import StatsWidget from '@/components/dashboard/StatsWidget.vue';
+import { APIUser } from '@/service/UserService';
 import { useUserStore } from '@/store/UserStore';
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -12,9 +13,12 @@ const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
 
-onMounted(() => {
-    if (userStore.userEmail.length > 0) {
-        router.push('/auth/login');
+onMounted(async () => {
+    const user = await APIUser.getUser();
+    if (user) {
+        userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
+    } else {
+        router.push('/login');
     }
 });
 </script>

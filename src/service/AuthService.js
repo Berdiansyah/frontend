@@ -3,8 +3,6 @@ import { axiosCall } from './ApiHelper';
 class ApiAuth {
     async login(data) {
         const response = await axiosCall({ url: `/auth/login`, method: 'post', data: data });
-        console.log(response);
-        console.log(data);
         return response.data;
     }
 

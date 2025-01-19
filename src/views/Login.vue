@@ -2,6 +2,7 @@
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 import router from '@/router';
 import { APIAuth } from '@/service/AuthService';
+import { APIUser } from '@/service/UserService';
 import { useUserStore } from '@/store/UserStore';
 import { reactive } from 'vue';
 
@@ -20,13 +21,12 @@ async function submitForm() {
         if (accessToken) {
             localStorage.setItem('accessToken', accessToken);
             const user = await APIUser.getUser();
-            console.log(user);
-            // userStore.login( user. )
+            userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
         }
         router.push('/');
     } catch (error) {
         console.error(error);
-        console.log(error.message);
+        console.log(response.data.message);
     }
 }
 </script>
@@ -68,7 +68,7 @@ async function submitForm() {
                             <Password id="password1" v-model="data.password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
 
                             <div class="flex items-center justify-between mt-2 mb-8 gap-8">
-                                <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
+                                <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary" @click="test">Forgot password?</span>
                             </div>
                             <!-- <Button label="Sign In" class="w-full" as="router-link" to="/" @click="login"></Button> -->
                             <Button type="submit" label="Sign In" class="w-full"></Button>
