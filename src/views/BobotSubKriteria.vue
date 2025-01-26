@@ -1,7 +1,7 @@
 <script setup lang="js">
 import { APIBobotSubKriteria } from '@/service/BobotSubKriteriaService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
-import { Button, Column, DataTable, Dialog, useToast } from 'primevue';
+import { Button, Column, DataTable, Dialog, useToast, TreeSelect } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
 
 //data template
@@ -18,13 +18,14 @@ const toast = useToast();
 
 //data state
 const listSubKriteria = ref([]);
+const tempNamaBobot = ref('');
 const selectedSubKriteria = ref(null);
+const selectedSubKriteriaId = ref(null);
 const inputNamaBobot = ref('');
 const inputNilaiBobot = ref('');
-const listTypePreferensi = ref([]);
-const inputTypePreferensi = ref('');
-const listTypePreferensiWithNumber = computed(() =>
-    listTypePreferensi.value.map((item, index) => ({
+const listBobotSubKriteria = ref([]);
+const listBobotSubKriteriaWithNumber = computed(() =>
+    listBobotSubKriteria.value.map((item, index) => ({
         ...item,
         no: index + 1,
         sub_kriteria_name: getSubKriteriaName(item.id_sub_kriteria)
@@ -36,13 +37,13 @@ const formatSubKriteriaForTree = computed(() => {
     return listSubKriteria.value.map((item) => ({
         key: item.key,
         label: item.data.name,
-        selectable: false, // Parent tidak bisa dipilih
+        selectable: false,
         children:
             item.children?.map((child) => ({
                 key: child.key,
                 label: child.data.name,
-                data: child.data,
-                selectable: true // Child bisa dipilih
+                data: child.data, // Store complete child data
+                selectable: true
             })) || []
     }));
 });
@@ -72,17 +73,28 @@ const actionType = {
 onMounted(async () => {
     await getAllBobotSubKriteria();
     await getAllSubKriteria();
-    console.log(listTypePreferensi.value);
     headerModal.value = '';
     temporaryId.value = '';
 });
 
 // Watch untuk selectedSubKriteria
 watch(selectedSubKriteria, (newValue) => {
-    if (newValue) {
-        errors.value.subKriteria = '';
+    if (newValue && Object.keys(newValue).length > 0) {
+        const dynamicObject = selectedSubKriteria.value;
+        Object.entries(dynamicObject).forEach(([key, value]) => {
+            const selectedNode = findNode(key, formatSubKriteriaForTree.value);
+            if (selectedNode && selectedNode.data) {
+                const getSubKriteriaId = Object.values(selectedNode.data);
+                selectedSubKriteriaId.value = getSubKriteriaId[0];
+                errors.value.subKriteria = '';
+            }
+        });
     } else {
-        errors.value.subKriteria = 'Sub Kriteria harus dipilih';
+        selectedSubKriteriaId.value = null;
+        if (!temporaryId.value) {
+            // Only show error if not in edit mode
+            errors.value.subKriteria = 'Sub Kriteria harus dipilih';
+        }
     }
 });
 
@@ -110,7 +122,6 @@ watch(inputNilaiBobot, (newValue) => {
     }
 });
 
-// Validation functions
 function validateForm() {
     let isValid = true;
     errors.value = {
@@ -119,7 +130,7 @@ function validateForm() {
         nilaiBobot: ''
     };
 
-    if (!selectedSubKriteria.value) {
+    if (!selectedSubKriteriaId.value) {
         errors.value.subKriteria = 'Sub Kriteria harus dipilih';
         isValid = false;
     }
@@ -137,10 +148,9 @@ function validateForm() {
     return isValid;
 }
 
-//function
 async function getAllBobotSubKriteria() {
     const response = await APIBobotSubKriteria.getAllBobotSubKriteria();
-    listTypePreferensi.value = response.data;
+    listBobotSubKriteria.value = response.data;
 }
 
 async function getAllSubKriteria() {
@@ -148,17 +158,45 @@ async function getAllSubKriteria() {
     listSubKriteria.value = response.data;
 }
 
-function formAddTypePreferensi() {
+function formAddBobotSubKriteria() {
     formVisible.value = true;
     titlePage.value = 'Tambah Bobot Sub Kriteria';
     clearErrors();
 }
 
-function formEditTypePreferensi(id) {
-    const typePreferensi = listTypePreferensi.value.find((item) => item._id === id);
+function findTreeNodeKeyById(id) {
+    for (const parent of listSubKriteria.value) {
+        const child = parent.children?.find((child) => child.data._id === id);
+        if (child) {
+            return child.key;
+        }
+    }
+    return null;
+}
+
+async function formEditBobotSubKriteria(id, nama_bobot) {
+    const bobotSubKriteria = listBobotSubKriteria.value.find((item) => item._id === id);
+    if (bobotSubKriteria) {
+        // Wait for sub kriteria data to be loaded if not already loaded
+        if (listSubKriteria.value.length === 0) {
+            await getAllSubKriteria();
+        }
+
+        // Find the tree node key for the selected sub kriteria
+        const nodeKey = findTreeNodeKeyById(bobotSubKriteria.id_sub_kriteria);
+
+        // Create the selected sub kriteria object structure expected by TreeSelect
+        selectedSubKriteria.value = { [nodeKey]: true };
+        selectedSubKriteriaId.value = bobotSubKriteria.id_sub_kriteria;
+
+        // Set other form values
+        inputNamaBobot.value = bobotSubKriteria.nama_bobot;
+        inputNilaiBobot.value = bobotSubKriteria.nilai_bobot.toString();
+    }
+
+    tempNamaBobot.value = nama_bobot;
     formVisible.value = true;
     titlePage.value = 'Edit Type Preferensi';
-    inputTypePreferensi.value = typePreferensi.type;
     temporaryId.value = id;
     clearErrors();
 }
@@ -174,8 +212,11 @@ function clearErrors() {
 function backFromForm() {
     formVisible.value = false;
     titlePage.value = 'Daftar Type Preferensi';
-    inputTypePreferensi.value = '';
     temporaryId.value = '';
+    selectedSubKriteria.value = null;
+    inputNamaBobot.value = '';
+    tempNamaBobot.value = '';
+    inputNilaiBobot.value = '';
     clearErrors();
 }
 
@@ -184,20 +225,35 @@ const showDialog = (type, value = null) => {
     selectedValue.value = value;
     const colorText = type === 'delete' ? '#ef4444 ' : '#0ea5e9';
     dialogMessage.value = `
-    Apakah Anda yakin ingin 
-    <span style="text-decoration: underline; font-weight: bold; color:${colorText};">${type}</span> 
-    Bobot Sub Kriteria 
-    <span style="text-decoration: underline; font-weight: bold; color:${colorText};">${value}</span>  
+    Apakah Anda yakin ingin
+    <span style="text-decoration: underline; font-weight: bold; color:${colorText};">${type}</span>
+    Bobot Sub Kriteria
+    <span style="text-decoration: underline; font-weight: bold; color:${colorText};">${value}</span>
     ini?`;
     dialogVisible.value = true;
 };
 
 function confirmDelete(id) {
-    const product = listTypePreferensi.value.find((item) => item._id === id);
+    const product = listBobotSubKriteria.value.find((item) => item._id === id);
     headerModal.value = 'Konfirmasi Hapus Type Preferensi';
     isDeleteModal.value = true;
     temporaryId.value = id;
     showDialog('Hapus', product);
+}
+
+function findNode(key, nodes) {
+    for (const node of nodes) {
+        if (node.key === key) {
+            return node; // Node ditemukan
+        }
+
+        if (node.children) {
+            const found = findNode(key, node.children);
+            if (found) return found;
+        }
+    }
+
+    return null; // Tidak ditemukan
 }
 
 function confirmAddEdit() {
@@ -207,9 +263,8 @@ function confirmAddEdit() {
     }
 
     if (temporaryId.value.length > 0) {
-        const typePreferensi = listTypePreferensi.value.find((item) => item._id === temporaryId.value);
         headerModal.value = 'Konfirmasi Edit Type Preferensi';
-        showDialog('Edit', typePreferensi);
+        showDialog('Edit', tempNamaBobot.value);
     } else {
         headerModal.value = 'Konfirmasi Tambah Type Preferensi';
         showDialog('Tambah', inputNamaBobot.value);
@@ -228,28 +283,29 @@ function clearState() {
 
 async function confirmAction() {
     const data = {
-        _id: temporaryId.value
+        _id: temporaryId.value,
+        id_sub_kriteria: selectedSubKriteriaId.value,
+        nama_bobot: inputNamaBobot.value,
+        nilai_bobot: inputNilaiBobot.value
     };
 
-    console.log(formatSubKriteriaForTree.value);
-    console.log(selectedSubKriteria.value);
     if (currentActionType.value === actionType.delete) {
-        await APITypePreferensi.deleteTypePreferensi({ _id: temporaryId.value });
+        await APIBobotSubKriteria.deleteBobotSubKriteria({ _id: temporaryId.value });
         await getAllBobotSubKriteria();
         clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Type Preferensi berhasil dihapus', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil dihapus', life: 3000 });
     } else if (currentActionType.value === actionType.edit) {
-        await APITypePreferensi.updateTypePreferensi({ _id: temporaryId.value, type: inputTypePreferensi.value });
+        await APIBobotSubKriteria.updateBobotSubKriteria(data);
         await getAllBobotSubKriteria();
         backFromForm();
         clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Type Preferensi berhasil diubah', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil diubah', life: 3000 });
     } else {
-        await APITypePreferensi.addTypePreferensi({ type: inputTypePreferensi.value });
+        await APIBobotSubKriteria.addBobotSubKriteria(data);
         await getAllBobotSubKriteria();
         clearState();
         backFromForm();
-        toast.add({ severity: 'success', summary: 'Success', detail: `Type Preferensi berhasil ditambahkan ${inputTypePreferensi.value}`, life: 3000 });
+        toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil ditambahkan', life: 3000 });
     }
 }
 </script>
@@ -258,12 +314,12 @@ async function confirmAction() {
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>
-            <Button v-if="!formVisible" label="Tambah Bobot" icon="pi pi-plus" @click="formAddTypePreferensi" />
+            <Button v-if="!formVisible" label="Tambah Bobot" icon="pi pi-plus" @click="formAddBobotSubKriteria" />
             <Button v-if="formVisible" label="Kembali" icon="pi pi-arrow-left" @click="backFromForm" severity="info" />
         </div>
 
         <div v-if="!formVisible">
-            <DataTable :value="listTypePreferensiWithNumber" paginator :rows="10">
+            <DataTable :value="listBobotSubKriteriaWithNumber" paginator :rows="10">
                 <Column field="no" header="No" />
                 <Column field="sub_kriteria_name" header="Sub Kriteria" />
                 <Column field="nama_bobot" header="Nama Bobot" />
@@ -271,7 +327,7 @@ async function confirmAction() {
                 <Column header="Aksi">
                     <template #body="{ data }">
                         <div class="flex justify-center gap-2">
-                            <Button label="Edit" icon="pi pi-pencil" class="p-button-rounded p-button-info p-button-sm" @click="formEditTypePreferensi(data._id)" />
+                            <Button label="Edit" icon="pi pi-pencil" class="p-button-rounded p-button-info p-button-sm" @click="formEditBobotSubKriteria(data._id, data.nama_bobot)" />
                             <Button label="Delete" icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-sm" @click="confirmDelete(data._id)" />
                         </div>
                     </template>
@@ -284,7 +340,7 @@ async function confirmAction() {
                 <label for="email3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Sub Kriteria</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <TreeSelect v-model="selectedSubKriteria" :options="formatSubKriteriaForTree" placeholder="Pilih Sub Kriteria" class="w-full xl:w-[75%]" :class="errors.subKriteria ? 'p-invalid' : ''" :metaKeySelection="false" />
+                        <TreeSelect tree v-model="selectedSubKriteria" :options="formatSubKriteriaForTree" placeholder="Pilih Sub Kriteria" class="w-full xl:w-[75%]" :class="errors.subKriteria ? 'p-invalid' : ''" :metaKeySelection="false" />
                         <small class="text-red-500" v-if="errors.subKriteria"> *{{ errors.subKriteria }} </small>
                     </div>
                 </div>

@@ -8,6 +8,9 @@ const TipePreferensi = () => import('@/views/TipePreferensi.vue');
 const Kriteria = () => import('@/views/Kriteria.vue');
 const SubKriteria = () => import('@/views/SubKriteria.vue');
 const BobotSubKriteria = () => import('@/views/BobotSubKriteria.vue');
+const User = () => import('@/views/User.vue');
+const ChangePassword = () => import('@/views/ChangePassword.vue');
+const Profile = () => import('@/views/Profile.vue');
 
 const router = createRouter({
     history: createWebHistory(),
@@ -53,8 +56,26 @@ const router = createRouter({
                     path: '/bobot-sub-kriteria',
                     name: 'bobot-sub-kriteria',
                     component: BobotSubKriteria
+                },
+                {
+                    path: '/user',
+                    name: 'user',
+                    component: User
+                },
+                {
+                    path: '/profile',
+                    name: 'profile',
+                    component: Profile
+                },
+                {
+                    path: '/change-password',
+                    name: 'change-password',
+                    component: ChangePassword
                 }
-            ]
+            ],
+            meta: {
+                requiresAuth: true
+            }
         },
         {
             path: '/landing',

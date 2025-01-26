@@ -16,7 +16,9 @@ const data = reactive({
 async function submitForm() {
     try {
         console.log('berhasil masuk ke dalma try');
+        console.log(data)
         const response = await APIAuth.login(data);
+        console.log(response)
         const accessToken = response.data.accessToken;
         if (accessToken) {
             localStorage.setItem('accessToken', accessToken);

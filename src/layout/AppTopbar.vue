@@ -19,6 +19,14 @@ function close() {
     isLogout.value = false;
 }
 
+function navigateToProfile(){
+    router.push('/profile')
+}
+
+function navigateToChangePassword(){
+    router.push('/change-password')
+}
+
 async function logout() {
     await APIAuth.logout();
     userStore.logout();
@@ -83,9 +91,13 @@ async function logout() {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button type="button" class="layout-topbar-action">
+                    <button @click="navigateToProfile" type="button" class="layout-topbar-action lg:hidden">
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
+                    </button>
+                    <button @click="navigateToChangePassword" type="button" class="layout-topbar-action lg:hidden">
+                        <i class="pi pi-key"></i>
+                        <span>Change Password</span>
                     </button>
                     <button @click="modalLogout()" type="button" class="layout-topbar-action">
                         <i class="pi pi-sign-out"></i>

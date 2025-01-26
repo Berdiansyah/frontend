@@ -14,9 +14,9 @@ import axios from './interceptors/axios';
 const app = createApp(App);
 const pinia = createPinia();
 
+app.use(pinia);
 app.use(router);
 app.use(axios);
-app.use(pinia);
 app.use(PrimeVue, {
     theme: {
         preset: Aura,

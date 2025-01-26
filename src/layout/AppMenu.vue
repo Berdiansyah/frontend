@@ -14,7 +14,8 @@ const model = ref([
             { label: 'Sub Kriteria', icon: 'pi  pi-sitemap', to: '/sub-kriteria' },
             { label: 'Bobot Sub Kriteria', icon: 'pi pi-slack', to: '/bobot-sub-kriteria' },
             { label: 'Tipe Preferensi', icon: 'pi pi-objects-column', to: '/tipe-preferensi' },
-            { label: 'Hasil', icon: 'pi pi-check-circle', to: '/hasil' }
+            { label: 'Hasil', icon: 'pi pi-check-circle', to: '/hasil' },
+            { label: 'User', icon: 'pi pi-users', to: '/user' }
         ]
     }
 ]);
