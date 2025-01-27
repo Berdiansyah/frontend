@@ -15,6 +15,16 @@ class ApiAuth {
         const response = await axiosCall({ url: `/auth/logout`, method: 'post' });
         return response.data;
     }
+
+    async resetPassword(user){
+        const response = await axiosCall({ url: `/auth/reset-password`, method: 'post', data: user});
+        return response.data;
+    }
+    
+    async forgotPassword(user){
+        const response = await axiosCall({ url: `/auth/forgot-password`, method: 'post', data: user });
+        return response.data;
+    }
 }
 
 export const APIAuth = new ApiAuth();

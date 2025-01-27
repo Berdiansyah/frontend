@@ -2,68 +2,56 @@
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 import router from '@/router';
 import { APIAuth } from '@/service/AuthService';
-import { APIUser } from '@/service/UserService';
-import { useUserStore } from '@/store/UserStore';
 import { useToast } from 'primevue';
 import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
-const userStore = useUserStore();
-// const router = useRouter();
-const msgError = ref('');
+const route = useRoute();
+const inputNewPassword = ref('');
+const inputReNewPassword = ref('');
 const toast = useToast();
-const inputEmail = ref('');
-const inputPassword = ref('');
+const successFlag = ref(false);
 
 const errors = ref({
-    email: '',
-    password: ''
+    newPassword: '',
+    reNewPassword: ''
 });
 
-watch(inputEmail, (newValue) => {
-    console.log('masuk ga');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex untuk memvalidasi format email
+watch(inputNewPassword, (newValue) => {
+    errors.value.newPassword = !newValue || newValue.trim() === '' ? '*New Password harus diisi' : newValue.length < 6 ? '*New Password minimal 6 karakter' : '';
 
-    if (!newValue || newValue.trim() === '') {
-        errors.value.email = '*Email harus diisi';
-    } else if (!emailRegex.test(newValue)) {
-        errors.value.email = '*Format email tidak valid';
-    } else {
-        errors.value.email = '';
-    }
+    // Validate re-password match
+    errors.value.reNewPassword = inputReNewPassword.value && inputReNewPassword.value !== newValue ? '*New Password tidak cocok' : '';
 });
 
-watch(inputPassword, (newValue) => {
-    if (!newValue || newValue.trim() === '') {
-        errors.value.password = '*Password harus diisi';
-    } else if (newValue.length < 6) {
-        errors.value.password = '*Password minimal 6 karakter';
-    } else {
-        errors.value.password = '';
-    }
+watch(inputReNewPassword, (newValue) => {
+    errors.value.reNewPassword = !newValue || newValue.trim() === '' ? '*Re-New Password harus diisi' : newValue !== inputNewPassword.value ? '*New Password tidak cocok' : '';
 });
 
 function validateForm() {
     let isValid = true;
+
+    // Reset errors
     errors.value = {
-        email: '',
-        password: ''
+        newPassword: '',
+        reNewPassword: ''
     };
 
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex untuk memvalidasi format email
-    if (!inputEmail.value || inputEmail.value.trim() === '') {
-        errors.value.email = '*Email harus diisi';
+    // Validate new password
+    if (!inputNewPassword.value || inputNewPassword.value.trim() === '') {
+        errors.value.newPassword = '*New Password harus diisi';
         isValid = false;
-    } else if (!emailRegex.test(inputEmail.value)) {
-        errors.value.email = '*Format email tidak valid';
+    } else if (inputNewPassword.value.length < 6) {
+        errors.value.newPassword = '*New Password minimal 6 karakter';
         isValid = false;
     }
 
-    if (!inputPassword.value || inputPassword.value.trim() === '') {
-        errors.value.password = '*Password harus diisi';
+    // Validate re-new password
+    if (!inputReNewPassword.value || inputReNewPassword.value.trim() === '') {
+        errors.value.reNewPassword = '*Re-New Password harus diisi';
         isValid = false;
-    } else if (inputPassword.value.length < 6) {
-        errors.value.password = '*Password minimal 6 karakter';
+    } else if (inputReNewPassword.value !== inputNewPassword.value) {
+        errors.value.reNewPassword = '*Password tidak cocok';
         isValid = false;
     }
 
@@ -73,33 +61,40 @@ function validateForm() {
 async function submitForm() {
     try {
         if (!validateForm()) {
-            toast.add({ severity: 'error', summary: 'Error', detail: 'Mohon lengkapi semua field yang diperlukan', life: 3000 });
+            toast.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Mohon lengkapi semua field yang diperlukan',
+                life: 3000
+            });
             return;
         }
 
-        const data = {
-            email: inputEmail.value,
-            password: inputPassword.value
-        };
-        const response = await APIAuth.login(data);
-        const accessToken = response.data.accessToken;
-        if (accessToken) {
-            localStorage.setItem('accessToken', accessToken);
-            const user = await APIUser.getUser();
-            userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
+        const getToken = route.params.token || route.query.token;
+        if (!getToken) {
+            toast.add({ severity: 'error', summary: 'Error', detail: 'Token tidak valid.', life: 3000 });
+            return;
         }
-        router.push('/');
+        const data = { token: getToken, newPassword: inputReNewPassword.value };
+        console.log(data);
+
+        // Request ke backend untuk reset password
+        await APIAuth.resetPassword({ token: getToken, newPassword: inputReNewPassword.value });
+        successFlag.value = true;
     } catch (error) {
-        msgError.value = error.response.data.message;
+        console.error(error)
+        toast.add({ severity: 'error', summary: 'Error', detail: response.data.message, life: 3000 });
     }
 }
 
-function navigateToForgotPassword() {
-    router.push('/forgot-password');
+function buttonSuccess() {
+    successFlag.value = false;
+    router.push('/login');
 }
 </script>
 
 <template>
+    <Toast />
     <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
         <div class="flex flex-col items-center justify-center">
@@ -123,27 +118,22 @@ function navigateToForgotPassword() {
                                 />
                             </g>
                         </svg>
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Welcome to Frystra!</div>
-                        <span v-if="!msgError" class="text-muted-color font-medium">Sign in to continue</span>
-                        <span v-if="msgError" class="text-muted-color font-medium" style="color: red">{{ msgError }}</span>
+                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Reset Password</div>
+                        <span class="text-muted-color font-medium">Input new password for you accound</span>
                     </div>
 
                     <form @submit.prevent="submitForm()">
-                        <div>
-                            <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
-                            <div class="flex flex-col gap-2 mb-2">
-                                <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem]" v-model="inputEmail" autocomplete="off" />
-                                <small class="text-red-500" v-if="errors.email">{{ errors.email }}</small>
+                        <div class="">
+                            <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">New Password</label>
+                            <div class="flex flex-col gap-2">
+                                <Password id="password1" v-model="inputNewPassword" placeholder="New Password" :toggleMask="true" class="w-full" fluid :feedback="false" :class="errors.newPassword.length ? 'p-invalid' : ''"></Password>
+                                <small class="text-red-500" v-if="errors.newPassword">{{ errors.newPassword }}</small>
                             </div>
 
-                            <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
-                            <div class="flex flex-col gap-2 mb-8">
-                                <Password id="password1" v-model="inputPassword" placeholder="Password" :toggleMask="true" class="" fluid :feedback="false"></Password>
-                                <small class="text-red-500" v-if="errors.password">{{ errors.password }}</small>
-                            </div>
-
-                            <div @click="navigateToForgotPassword" class="flex items-center justify-between mt-2 mb-8 gap-8">
-                                <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
+                            <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mt-4 mb-2">Re-New Password</label>
+                            <div class="flex flex-col gap-2 mb-10">
+                                <Password id="password1" v-model="inputReNewPassword" placeholder="Re-New Password" :toggleMask="true" fluid :feedback="false" :class="errors.reNewPassword ? 'p-invalid' : ''"></Password>
+                                <small class="text-red-500" v-if="errors.reNewPassword">{{ errors.reNewPassword }}</small>
                             </div>
                             <Button type="submit" label="Sign In" class="w-full"></Button>
                         </div>
@@ -152,19 +142,18 @@ function navigateToForgotPassword() {
             </div>
         </div>
     </div>
+
+    <Dialog header="Kata Sandi Berhasil Diubah" v-model:visible="successFlag" :style="{ width: '25rem' }" modal>
+        <div class="flex flex-col gap-4 p-4 justify-between">
+            <p class="text-2xl mb-10">Kata sandi Anda telah berhasil diperbarui. Silakan masuk menggunakan kata sandi baru Anda.</p>
+            <div class="flex justify-end gap-2">
+                <Button label="Ok" icon="pi pi-check" @click="buttonSuccess" />
+            </div>
+        </div>
+    </Dialog>
 </template>
 
 <style scoped>
-.pi-eye {
-    transform: scale(1.6);
-    margin-right: 1rem;
-}
-
-.pi-eye-slash {
-    transform: scale(1.6);
-    margin-right: 1rem;
-}
-
 .p-invalid {
     border-color: #dc2626;
 }

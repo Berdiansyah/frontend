@@ -2,51 +2,39 @@
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
 import router from '@/router';
 import { APIAuth } from '@/service/AuthService';
-import { APIUser } from '@/service/UserService';
-import { useUserStore } from '@/store/UserStore';
-import { useToast } from 'primevue';
+import { Button, Dialog, useToast } from 'primevue';
 import { ref, watch } from 'vue';
 
-const userStore = useUserStore();
 // const router = useRouter();
-const msgError = ref('');
-const toast = useToast();
 const inputEmail = ref('');
-const inputPassword = ref('');
+const dialogVisible = ref(false);
+const toast = useToast();
 
+// Form validation
 const errors = ref({
-    email: '',
-    password: ''
+    email: ''
 });
 
 watch(inputEmail, (newValue) => {
-    console.log('masuk ga');
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Regex untuk memvalidasi format email
 
     if (!newValue || newValue.trim() === '') {
         errors.value.email = '*Email harus diisi';
     } else if (!emailRegex.test(newValue)) {
-        errors.value.email = '*Format email tidak valid';
+        errors.value.email = 'Format email tidak valid';
     } else {
         errors.value.email = '';
     }
 });
 
-watch(inputPassword, (newValue) => {
-    if (!newValue || newValue.trim() === '') {
-        errors.value.password = '*Password harus diisi';
-    } else if (newValue.length < 6) {
-        errors.value.password = '*Password minimal 6 karakter';
-    } else {
-        errors.value.password = '';
-    }
-});
 
+// Validation functions
 function validateForm() {
     let isValid = true;
+
+    // Reset errors
     errors.value = {
-        email: '',
-        password: ''
+        email: ''
     };
 
     // Validate email
@@ -55,15 +43,7 @@ function validateForm() {
         errors.value.email = '*Email harus diisi';
         isValid = false;
     } else if (!emailRegex.test(inputEmail.value)) {
-        errors.value.email = '*Format email tidak valid';
-        isValid = false;
-    }
-
-    if (!inputPassword.value || inputPassword.value.trim() === '') {
-        errors.value.password = '*Password harus diisi';
-        isValid = false;
-    } else if (inputPassword.value.length < 6) {
-        errors.value.password = '*Password minimal 6 karakter';
+        errors.value.email = 'Format email tidak valid';
         isValid = false;
     }
 
@@ -77,29 +57,26 @@ async function submitForm() {
             return;
         }
 
-        const data = {
-            email: inputEmail.value,
-            password: inputPassword.value
-        };
-        const response = await APIAuth.login(data);
-        const accessToken = response.data.accessToken;
-        if (accessToken) {
-            localStorage.setItem('accessToken', accessToken);
-            const user = await APIUser.getUser();
-            userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
-        }
-        router.push('/');
+        await APIAuth.forgotPassword({ email: inputEmail.value });
+        dialogVisible.value = true;
     } catch (error) {
-        msgError.value = error.response.data.message;
+        console.error(error.response.data.message);
+        toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
     }
 }
 
-function navigateToForgotPassword() {
-    router.push('/forgot-password');
+function backToLogin() {
+    router.push('/login');
+}
+
+function buttonSuccess() {
+    dialogVisible.value = false;
+    backToLogin();
 }
 </script>
 
 <template>
+    <Toast />
     <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
         <div class="flex flex-col items-center justify-center">
@@ -123,48 +100,38 @@ function navigateToForgotPassword() {
                                 />
                             </g>
                         </svg>
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Welcome to Frystra!</div>
-                        <span v-if="!msgError" class="text-muted-color font-medium">Sign in to continue</span>
-                        <span v-if="msgError" class="text-muted-color font-medium" style="color: red">{{ msgError }}</span>
+                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Forgot Password</div>
+                        <span class="text-muted-color font-medium">Insert Email To Continue</span>
                     </div>
 
                     <form @submit.prevent="submitForm()">
                         <div>
                             <label for="email1" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2">Email</label>
-                            <div class="flex flex-col gap-2 mb-2">
-                                <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem]" v-model="inputEmail" autocomplete="off" />
+                            <div class="flex flex-col gap-2 mb-8">
+                                <InputText id="email1" type="text" placeholder="Email address" class="w-full md:w-[30rem]" :class="errors.email ? 'p-invalid' : ''" v-model="inputEmail" autocomplete="off" />
                                 <small class="text-red-500" v-if="errors.email">{{ errors.email }}</small>
                             </div>
-
-                            <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
-                            <div class="flex flex-col gap-2 mb-8">
-                                <Password id="password1" v-model="inputPassword" placeholder="Password" :toggleMask="true" class="" fluid :feedback="false"></Password>
-                                <small class="text-red-500" v-if="errors.password">{{ errors.password }}</small>
+                            <div class="flex gap-10">
+                                <Button class="w-full" label="Back" severity="warn" icon="pi pi-times-circle" @click="backToLogin" />
+                                <Button type="submit" class="w-full" label="Send" icon="pi pi-send" />
                             </div>
-
-                            <div @click="navigateToForgotPassword" class="flex items-center justify-between mt-2 mb-8 gap-8">
-                                <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
-                            </div>
-                            <Button type="submit" label="Sign In" class="w-full"></Button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+    <Dialog header="Email Terkirim!" v-model:visible="dialogVisible" :style="{ width: '25rem' }" modal>
+        <div class="flex flex-col gap-4 p-4 justify-between">
+            <p class="text-2xl mb-10">Kami telah mengirimkan tautan untuk mereset kata sandi Anda. Silakan periksa kotak masuk atau folder spam pada email Anda</p>
+            <div class="flex justify-end gap-2">
+                <Button label="Ok" icon="pi pi-check" @click="buttonSuccess" />
+            </div>
+        </div>
+    </Dialog>
 </template>
 
 <style scoped>
-.pi-eye {
-    transform: scale(1.6);
-    margin-right: 1rem;
-}
-
-.pi-eye-slash {
-    transform: scale(1.6);
-    margin-right: 1rem;
-}
-
 .p-invalid {
     border-color: #dc2626;
 }

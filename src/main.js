@@ -17,6 +17,7 @@ const pinia = createPinia();
 app.use(pinia);
 app.use(router);
 app.use(axios);
+app.use(ToastService);
 app.use(PrimeVue, {
     theme: {
         preset: Aura,
@@ -26,7 +27,6 @@ app.use(PrimeVue, {
     }
 });
 
-app.use(ToastService);
 app.use(ConfirmationService);
 
 app.mount('#app');

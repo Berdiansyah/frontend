@@ -19,12 +19,12 @@ function close() {
     isLogout.value = false;
 }
 
-function navigateToProfile(){
-    router.push('/profile')
+function navigateToProfile() {
+    router.push('/profile');
 }
 
-function navigateToChangePassword(){
-    router.push('/change-password')
+function navigateToChangePassword() {
+    router.push('/change-password');
 }
 
 async function logout() {
@@ -61,7 +61,7 @@ async function logout() {
                     </g>
                 </svg>
 
-                <span>SAKAI</span>
+                <span>FRYSTRA</span>
             </router-link>
         </div>
 
@@ -91,15 +91,15 @@ async function logout() {
 
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
-                    <button @click="navigateToProfile" type="button" class="layout-topbar-action lg:hidden">
+                    <button @click="navigateToProfile" type="button" class="layout-topbar-action lg:hidden" v-tooltip.bottom="'Profile'">
                         <i class="pi pi-user"></i>
                         <span>Profile</span>
                     </button>
-                    <button @click="navigateToChangePassword" type="button" class="layout-topbar-action lg:hidden">
+                    <button v-tooltip.bottom="'Change Password'" @click="navigateToChangePassword" type="button" class="layout-topbar-action lg:hidden">
                         <i class="pi pi-key"></i>
                         <span>Change Password</span>
                     </button>
-                    <button @click="modalLogout()" type="button" class="layout-topbar-action">
+                    <button v-tooltip.bottom="'Logout'" @click="modalLogout()" type="button" class="layout-topbar-action">
                         <i class="pi pi-sign-out"></i>
                         <span>Logout</span>
                     </button>
