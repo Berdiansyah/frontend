@@ -2,6 +2,7 @@
 import { APIUser } from '@/service/UserService';
 import { Button, Column, DataTable, Dialog, useToast } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 
 //data template
 const dialogVisible = ref(false);
@@ -14,6 +15,7 @@ const isDeleteModal = ref(false);
 const temporaryId = ref('');
 const selectedValue = ref('');
 const toast = useToast();
+const isLoading = ref(false);
 
 //data state
 const listUsers = ref([]);
@@ -52,10 +54,16 @@ const actionType = {
 };
 
 onMounted(async () => {
-    await getAllUsers();
-    console.log(listUsers.value);
-    headerModal.value = '';
-    temporaryId.value = '';
+    isLoading.value = true;
+    try {
+        await getAllUsers();
+        console.log(listUsers.value);
+        headerModal.value = '';
+        temporaryId.value = '';
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 });
 
 watch(inputName, (newValue) => {
@@ -207,7 +215,7 @@ function clearErrors() {
         email: '',
         role: '',
         password: '',
-        rePassword: '',
+        rePassword: ''
     };
 }
 
@@ -269,6 +277,7 @@ function clearState() {
 }
 
 async function confirmAction() {
+    isLoading.value = true;
     let data;
     if (temporaryId.value.length > 0) {
         data = {
@@ -292,6 +301,7 @@ async function confirmAction() {
             await APIUser.deleteUser({ _id: temporaryId.value });
             await getAllUsers();
             clearState();
+            isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: `User ${user.name} berhasil dihapus`, life: 3000 });
         } catch (error) {
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
@@ -305,6 +315,7 @@ async function confirmAction() {
             await getAllUsers();
             backFromForm();
             clearState();
+            isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: `User ${user.name} berhasil diubah`, life: 3000 });
         } catch (error) {
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
@@ -316,6 +327,7 @@ async function confirmAction() {
             await getAllUsers();
             clearState();
             backFromForm();
+            isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: `User ${data.name} berhasil ditambahkan.`, life: 3000 });
         } catch (error) {
             console.error(error);
@@ -335,6 +347,7 @@ function toggleRePassword() {
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>

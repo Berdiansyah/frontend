@@ -1,5 +1,6 @@
 <script setup lang="js">
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import router from '@/router';
 import { APIAuth } from '@/service/AuthService';
 import { useToast } from 'primevue';
@@ -11,6 +12,7 @@ const inputNewPassword = ref('');
 const inputReNewPassword = ref('');
 const toast = useToast();
 const successFlag = ref(false);
+const isLoading = ref(false);
 
 const errors = ref({
     newPassword: '',
@@ -59,6 +61,7 @@ function validateForm() {
 }
 
 async function submitForm() {
+    isLoading.value = true;
     try {
         if (!validateForm()) {
             toast.add({
@@ -82,18 +85,28 @@ async function submitForm() {
         await APIAuth.resetPassword({ token: getToken, newPassword: inputReNewPassword.value });
         successFlag.value = true;
     } catch (error) {
-        console.error(error)
+        console.error(error);
         toast.add({ severity: 'error', summary: 'Error', detail: response.data.message, life: 3000 });
     }
+    isLoading.value = false;
 }
 
 function buttonSuccess() {
-    successFlag.value = false;
-    router.push('/login');
+    isLoading.value = true;
+    try {
+        successFlag.value = false;
+        router.push('/login');
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+
+    isLoading.value = false;
 }
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <Toast />
     <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">

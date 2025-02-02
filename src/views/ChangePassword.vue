@@ -4,6 +4,7 @@ import { APIUser } from '@/service/UserService';
 import { useUserStore } from '@/store/UserStore';
 import { Button, Dialog, useToast } from 'primevue';
 import { ref, watch } from 'vue';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 
 const dialogVisible = ref(false);
 const dialogMessage = ref('');
@@ -12,6 +13,7 @@ const titlePage = ref('Change Password');
 const headerModal = ref('');
 const toast = useToast();
 const userStore = useUserStore();
+const isLoading = ref(false);
 
 const inputCurrentPassword = ref('');
 const inputNewPassword = ref('');
@@ -109,6 +111,7 @@ function showDialog(type, value = null) {
 }
 
 async function confirmAction() {
+    isLoading.value = true
     const data = {
         currentPassword: inputCurrentPassword.value,
         newPassword: inputNewPassword.value
@@ -133,6 +136,7 @@ async function confirmAction() {
         });
         dialogVisible.value = false;
     }
+    isLoading.value = false
 }
 
 function backFromForm() {
@@ -161,6 +165,7 @@ function resetInput() {
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <!-- Template remains mostly the same, with minor adjustments to use new togglePassword function -->
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">

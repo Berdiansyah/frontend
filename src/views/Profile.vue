@@ -3,6 +3,7 @@ import router from '@/router';
 import { APIUser } from '@/service/UserService';
 import { Button, Dialog, useToast } from 'primevue';
 import { onMounted, ref, watch } from 'vue';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 
 //data template
 const dialogVisible = ref(false);
@@ -14,6 +15,7 @@ const isDeleteModal = ref(false);
 const temporaryId = ref('');
 const selectedValue = ref('');
 const toast = useToast();
+const isLoading = ref(false);
 
 //data state
 const user = ref({});
@@ -32,10 +34,17 @@ const errors = ref({
 });
 
 onMounted(async () => {
-    await getUser();
-    console.log(user.value);
-    headerModal.value = '';
-    temporaryId.value = '';
+    isLoading.value = true;
+    try {
+        await getUser();
+        console.log(user.value);
+        headerModal.value = '';
+        temporaryId.value = '';
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 });
 
 watch(inputName, (newValue) => {
@@ -106,6 +115,7 @@ function confirmAddEdit() {
 }
 
 async function confirmAction() {
+    isLoading.value = true 
     const data = {
         _id: user.value._id,
         email: inputEmail.value,
@@ -123,10 +133,12 @@ async function confirmAction() {
         toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         dialogVisible.value = false;
     }
+    isLoading.value = false
 }
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>

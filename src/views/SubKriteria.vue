@@ -1,4 +1,5 @@
 <script setup lang="js">
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIKriteria } from '@/service/KriteriaService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
 import { APITypePreferensi } from '@/service/TypePreferensiService';
@@ -16,6 +17,7 @@ const isDeleteModal = ref(false);
 const temporaryId = ref('');
 const selectedValue = ref('');
 const toast = useToast();
+const isLoading = ref(false);
 
 //data state
 const isExpanded = ref(false); // Status header dinamis
@@ -63,9 +65,16 @@ const actionType = {
 };
 
 onMounted(async () => {
-    await getAllSubKriteria();
-    headerModal.value = '';
-    temporaryId.value = '';
+    isLoading.value = true;
+    try {
+        await getAllSubKriteria();
+        headerModal.value = '';
+        temporaryId.value = '';
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 });
 
 // watch(inputKriteria, (newValue) => {
@@ -224,7 +233,6 @@ function confirmAddEdit() {
     }
 
     if (temporaryId.value.length > 0) {
-        console.log('Masuk engga ke dalam sini di dalam confirm add edit');
         headerModal.value = 'Konfirmasi Edit Sub Kriteria';
         showDialog('Edit', inputSubKriteria.value);
         console.log(currentActionType.value);
@@ -245,6 +253,7 @@ function clearState() {
 }
 
 async function confirmAction() {
+    isLoading.value = true;
     const data = {
         _id: temporaryId.value,
         id_kriteria: selectedKriteria.value,
@@ -257,29 +266,50 @@ async function confirmAction() {
     };
 
     if (currentActionType.value === actionType.delete) {
-        await APISubKriteria.deleteSubKriteria({ _id: temporaryId.value });
-        await getAllSubKriteria();
-        backFromForm();
-        clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Kriteria berhasil dihapus', life: 3000 });
+        try {
+            await APISubKriteria.deleteSubKriteria({ _id: temporaryId.value });
+            await getAllSubKriteria();
+            backFromForm();
+            clearState();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Kriteria berhasil dihapus', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false;
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+        }
     } else if (currentActionType.value === actionType.edit) {
-        console.log('Masuk engga ke dalam sini di dalam confirm confirm');
-        await APISubKriteria.updateSubKriteria(data);
-        await getAllSubKriteria();
-        backFromForm();
-        clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Kriteria berhasil diubah', life: 3000 });
+        try {
+            await APISubKriteria.updateSubKriteria(data);
+            await getAllSubKriteria();
+            backFromForm();
+            clearState();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Kriteria berhasil diubah', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false;
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     } else {
-        await APISubKriteria.addSubKriteria(data);
-        await getAllSubKriteria();
-        clearState();
-        backFromForm();
-        toast.add({ severity: 'success', summary: 'Success', detail: `Kriteria berhasil ditambahkan ${inputKriteria.value}`, life: 3000 });
+        try {
+            await APISubKriteria.addSubKriteria(data);
+            await getAllSubKriteria();
+            clearState();
+            backFromForm();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: `Kriteria berhasil ditambahkan ${inputKriteria.value}`, life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false;
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     }
 }
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>

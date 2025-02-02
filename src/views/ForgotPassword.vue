@@ -9,6 +9,7 @@ import { ref, watch } from 'vue';
 const inputEmail = ref('');
 const dialogVisible = ref(false);
 const toast = useToast();
+const isLoading = ref(false);
 
 // Form validation
 const errors = ref({
@@ -26,7 +27,6 @@ watch(inputEmail, (newValue) => {
         errors.value.email = '';
     }
 });
-
 
 // Validation functions
 function validateForm() {
@@ -51,6 +51,7 @@ function validateForm() {
 }
 
 async function submitForm() {
+    isLoading.value = true;
     try {
         if (!validateForm()) {
             toast.add({ severity: 'error', summary: 'Error', detail: 'Mohon lengkapi semua field yang diperlukan', life: 3000 });
@@ -63,21 +64,37 @@ async function submitForm() {
         console.error(error.response.data.message);
         toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
     }
+    isLoading.value = false;
 }
 
 function backToLogin() {
-    router.push('/login');
+    isLoading.value = true;
+    try {
+        router.push('/login');
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 }
 
 function buttonSuccess() {
-    dialogVisible.value = false;
-    backToLogin();
+    isLoading.value = true;
+    try {
+        dialogVisible.value = false;
+        backToLogin();
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 }
 </script>
 
 <template>
     <Toast />
     <FloatingConfigurator />
+    <HamsterLoader :is-loading="isLoading" />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
         <div class="flex flex-col items-center justify-center">
             <div style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, var(--primary-color) 10%, rgba(33, 150, 243, 0) 30%)">

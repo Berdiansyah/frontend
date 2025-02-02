@@ -1,25 +1,34 @@
-<script setup>
+<script setup lang="js">
 import StatsWidget from '@/components/dashboard/StatsWidget.vue';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIUser } from '@/service/UserService';
 import { useUserStore } from '@/store/UserStore';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
+const isLoading = ref(false);
 
 onMounted(async () => {
-    const user = await APIUser.getUser();
-    if (user) {
-        userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
-    } else {
-        router.push('/login');
+    isLoading.value = true;
+    try {
+        const user = await APIUser.getUser();
+        if (user) {
+            userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
+        } else {
+            router.push('/login');
+        }
+    } catch (error) {
+        console.error(error);
     }
+    isLoading.value = false;
 });
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="grid grid-cols-12 gap-8">
         <StatsWidget />
 

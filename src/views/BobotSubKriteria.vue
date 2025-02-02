@@ -1,7 +1,7 @@
 <script setup lang="js">
 import { APIBobotSubKriteria } from '@/service/BobotSubKriteriaService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
-import { Button, Column, DataTable, Dialog, useToast, TreeSelect } from 'primevue';
+import { Button, Column, DataTable, Dialog, TreeSelect, useToast } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
 
 //data template
@@ -15,6 +15,7 @@ const isDeleteModal = ref(false);
 const temporaryId = ref('');
 const selectedValue = ref('');
 const toast = useToast();
+const isLoading = ref(false);
 
 //data state
 const listSubKriteria = ref([]);
@@ -71,10 +72,17 @@ const actionType = {
 };
 
 onMounted(async () => {
-    await getAllBobotSubKriteria();
-    await getAllSubKriteria();
-    headerModal.value = '';
-    temporaryId.value = '';
+    isLoading.value = true;
+    try {
+        await getAllBobotSubKriteria();
+        await getAllSubKriteria();
+        headerModal.value = '';
+        temporaryId.value = '';
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 });
 
 // Watch untuk selectedSubKriteria
@@ -282,6 +290,7 @@ function clearState() {
 }
 
 async function confirmAction() {
+    isLoading.value = true;
     const data = {
         _id: temporaryId.value,
         id_sub_kriteria: selectedSubKriteriaId.value,
@@ -290,27 +299,49 @@ async function confirmAction() {
     };
 
     if (currentActionType.value === actionType.delete) {
-        await APIBobotSubKriteria.deleteBobotSubKriteria({ _id: temporaryId.value });
-        await getAllBobotSubKriteria();
-        clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil dihapus', life: 3000 });
+        try {
+            await APIBobotSubKriteria.deleteBobotSubKriteria({ _id: temporaryId.value });
+            await getAllBobotSubKriteria();
+            clearState();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil dihapus', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+        }
     } else if (currentActionType.value === actionType.edit) {
-        await APIBobotSubKriteria.updateBobotSubKriteria(data);
-        await getAllBobotSubKriteria();
-        backFromForm();
-        clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil diubah', life: 3000 });
+        try {
+            await APIBobotSubKriteria.updateBobotSubKriteria(data);
+            await getAllBobotSubKriteria();
+            backFromForm();
+            clearState();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil diubah', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     } else {
-        await APIBobotSubKriteria.addBobotSubKriteria(data);
-        await getAllBobotSubKriteria();
-        clearState();
-        backFromForm();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil ditambahkan', life: 3000 });
+        try {
+            await APIBobotSubKriteria.addBobotSubKriteria(data);
+            await getAllBobotSubKriteria();
+            clearState();
+            backFromForm();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil ditambahkan', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     }
 }
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>

@@ -1,4 +1,5 @@
 <script setup lang="js">
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIBobotProduk } from '@/service/BobotProdukService';
 import { APIBobotSubKriteria } from '@/service/BobotSubKriteriaService';
 import { APIKriteria } from '@/service/KriteriaService';
@@ -19,6 +20,7 @@ const temporaryId = ref('');
 const selectedValue = ref('');
 const toast = useToast();
 const currentTree = ref(0);
+const isLoading = ref(false);
 
 //data state
 const isExpanded = ref(false); // Status header dinamis
@@ -59,11 +61,18 @@ const actionType = {
 };
 
 onMounted(async () => {
-    await getAllBobotProduk();
-    await getAllProduk();
-    await getAllKriteria();
-    await getAllSubKriteria();
-    await getAllBobotSubKriteria();
+    isLoading.value = true;
+    try {
+        await getAllBobotProduk();
+        await getAllProduk();
+        await getAllKriteria();
+        await getAllSubKriteria();
+        await getAllBobotSubKriteria();
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false;
 });
 
 watch(selectedProduk, (newValue) => {
@@ -185,6 +194,8 @@ function backFromForm() {
     titlePage.value = 'Daftar Bobot Produk';
     temporaryId.value = '';
     oldProduk.value = '';
+    selectedProduk.value = '';
+    selectedBobotSubKriteria.value = [];
     clearErrors();
 }
 
@@ -242,6 +253,7 @@ function clearState() {
 }
 
 async function confirmAction() {
+    isLoading.value = true;
     const data = {
         _id: temporaryId.value,
         id_produk: selectedProduk.value,
@@ -253,6 +265,7 @@ async function confirmAction() {
             await APIBobotProduk.deleteBobotProduk({ _id: data._id });
             await getAllBobotProduk();
             clearState();
+            isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Produk berhasil dihapus', life: 3000 });
         } catch (e) {
             dialogVisible.value = false;
@@ -264,6 +277,7 @@ async function confirmAction() {
             await getAllBobotProduk();
             backFromForm();
             clearState();
+            isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Produk berhasil diubah', life: 3000 });
         } catch (e) {
             dialogVisible.value = false;
@@ -276,9 +290,10 @@ async function confirmAction() {
             await getAllBobotProduk();
             clearState();
             backFromForm();
+            isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: `Berhasil menambahkan Bobot Produk ${produk.produk}`, life: 3000 });
-        } catch(e) {
-            dialogVisible.value = false
+        } catch (e) {
+            dialogVisible.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: e.response.data.message, life: 3000 });
         }
     }
@@ -286,6 +301,7 @@ async function confirmAction() {
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>

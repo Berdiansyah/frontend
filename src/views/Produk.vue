@@ -1,4 +1,5 @@
 <script setup lang="js">
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIProduk } from '@/service/ProdukService';
 import { Button, Column, DataTable, Dialog, useToast } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -19,6 +20,7 @@ const inputProduk = ref('');
 const selectedInputKategori = ref('');
 const inputKategoriLainnya = ref('');
 const toast = useToast();
+const isLoading = ref(false);
 
 // Form validation
 const errors = ref({
@@ -60,9 +62,15 @@ const filteredProduk = computed(() => {
 });
 
 onMounted(async () => {
-    await getAllProduk();
-    headerModal.value = '';
-    temporaryId.value = '';
+    isLoading.value = true;
+    try {
+        await getAllProduk();
+        headerModal.value = '';
+        temporaryId.value = '';
+    } catch (error) {
+        console.error(error);
+    }
+    isLoading.value = false;
 });
 
 watch(inputProduk, (newValue) => {
@@ -221,30 +229,53 @@ function clearState() {
 }
 
 async function confirmAction() {
+    isLoading.value = true;
     if (currentActionType.value === actionType.delete) {
-        await APIProduk.deleteProduk({ _id: temporaryId.value });
-        await getAllProduk();
-        clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Produk berhasil dihapus', life: 3000 });
+        try {
+            await APIProduk.deleteProduk({ _id: temporaryId.value });
+            await getAllProduk();
+            clearState();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Produk berhasil dihapus', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false;
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     } else if (currentActionType.value === actionType.edit) {
-        const kategori = selectedInputKategori.value.label === 'Kategori Lainnya' ? inputKategoriLainnya.value : selectedInputKategori.value.label;
-        await APIProduk.updateProduk({ _id: temporaryId.value, produk: inputProduk.value, kategori: kategori });
-        await getAllProduk();
-        backFromForm();
-        clearState();
-        toast.add({ severity: 'success', summary: 'Success', detail: 'Produk berhasil diubah', life: 3000 });
+        try {
+            const kategori = selectedInputKategori.value.label === 'Kategori Lainnya' ? inputKategoriLainnya.value : selectedInputKategori.value.label;
+            await APIProduk.updateProduk({ _id: temporaryId.value, produk: inputProduk.value, kategori: kategori });
+            await getAllProduk();
+            backFromForm();
+            clearState();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Produk berhasil diubah', life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false;
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     } else {
-        const kategori = selectedInputKategori.value.label === 'Kategori Lainnya' ? inputKategoriLainnya.value : selectedInputKategori.value.label;
-        await APIProduk.addProduk({ produk: inputProduk.value, kategori: kategori });
-        await getAllProduk();
-        clearState();
-        backFromForm();
-        toast.add({ severity: 'success', summary: 'Success', detail: `Produk berhasil ditambahkan ${inputProduk.value}`, life: 3000 });
+        try {
+            const kategori = selectedInputKategori.value.label === 'Kategori Lainnya' ? inputKategoriLainnya.value : selectedInputKategori.value.label;
+            await APIProduk.addProduk({ produk: inputProduk.value, kategori: kategori });
+            await getAllProduk();
+            clearState();
+            backFromForm();
+            isLoading.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: `Produk berhasil ditambahkan ${inputProduk.value}`, life: 3000 });
+        } catch (error) {
+            dialogVisible.value = false;
+            console.error(error);
+            toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        }
     }
 }
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titleProduk }}</h1>

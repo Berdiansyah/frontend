@@ -6,6 +6,7 @@ import { APIUser } from '@/service/UserService';
 import { useUserStore } from '@/store/UserStore';
 import { useToast } from 'primevue';
 import { ref, watch } from 'vue';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 
 const userStore = useUserStore();
 // const router = useRouter();
@@ -13,6 +14,7 @@ const msgError = ref('');
 const toast = useToast();
 const inputEmail = ref('');
 const inputPassword = ref('');
+const isLoading = ref(false)
 
 const errors = ref({
     email: '',
@@ -71,6 +73,7 @@ function validateForm() {
 }
 
 async function submitForm() {
+    isLoading.value = true
     try {
         if (!validateForm()) {
             toast.add({ severity: 'error', summary: 'Error', detail: 'Mohon lengkapi semua field yang diperlukan', life: 3000 });
@@ -92,14 +95,23 @@ async function submitForm() {
     } catch (error) {
         msgError.value = error.response.data.message;
     }
+    isLoading.value = false
 }
 
 function navigateToForgotPassword() {
-    router.push('/forgot-password');
+    isLoading.value = true
+    try {
+        router.push('/forgot-password');
+    } catch (error) {
+        console.error(error);
+        toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
+    }
+    isLoading.value = false
 }
 </script>
 
 <template>
+    <HamsterLoader :is-loading="isLoading" />
     <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
         <div class="flex flex-col items-center justify-center">
