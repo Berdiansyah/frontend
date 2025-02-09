@@ -1,6 +1,7 @@
 import { APIAuth } from '@/service/AuthService';
 import { useUserStore } from '@/store/UserStore';
 import axios from 'axios';
+import router from '@/router';
 
 let isRefreshing = false;
 let failedQueue = [];

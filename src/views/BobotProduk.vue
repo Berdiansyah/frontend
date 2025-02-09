@@ -111,21 +111,32 @@ watch(
 function validateForm() {
     let isValid = true;
 
-    if (selectedProduk.value.length == 0) {
+    errors.value = {
+        selectedProduk: '',
+        bobotSubKriteria: []
+    };
+
+    // Validate selected product
+    if (!selectedProduk.value) {
         errors.value.selectedProduk = '*Produk harus dipilih';
         isValid = false;
     }
 
     // Validate sub-kriteria selections
-    listSubKriteria.value.forEach((subKriteria, index) => {
-        if (!selectedBobotSubKriteria.value[index]) {
-            errors.value.bobotSubKriteria.push({
-                id: subKriteria._id,
-                message: `*Bobot untuk ${subKriteria.nama_sub_kriteria} harus dipilih!`
-            });
-            isValid = false;
-        }
-    });
+    if (selectedBobotSubKriteria.value.length == 0) {
+        listSubKriteria.value.forEach((subKriteria, index) => {
+            // Only validate if it's a relevant sub-kriteria for the selected kriteria
+            const subKriteriaBobot = selectedBobotSubKriteria.value[index];
+
+            if (!subKriteriaBobot) {
+                errors.value.bobotSubKriteria.push({
+                    id: subKriteria._id,
+                    message: `*Bobot untuk ${subKriteria.nama_sub_kriteria} harus dipilih!`
+                });
+                isValid = false;
+            }
+        });
+    }
 
     return isValid;
 }
@@ -254,11 +265,24 @@ function clearState() {
 
 async function confirmAction() {
     isLoading.value = true;
-    const data = {
-        _id: temporaryId.value,
-        id_produk: selectedProduk.value,
-        id_bobot_sub_kriteria: selectedBobotSubKriteria.value
-    };
+    isLoading.value = true;
+    let data;
+
+    // Filter out null values from selectedBobotSubKriteria
+    const filteredBobotSubKriteria = selectedBobotSubKriteria.value.filter((item) => item !== null);
+
+    if (temporaryId.value.length > 0) {
+        data = {
+            _id: temporaryId.value,
+            id_produk: selectedProduk.value,
+            id_bobot_sub_kriteria: filteredBobotSubKriteria
+        };
+    } else {
+        data = {
+            id_produk: selectedProduk.value,
+            id_bobot_sub_kriteria: filteredBobotSubKriteria
+        };
+    }
 
     if (currentActionType.value === actionType.delete) {
         try {
@@ -285,6 +309,7 @@ async function confirmAction() {
         }
     } else {
         try {
+            console.log(data);
             const produk = listProduk.value.find((item) => item._id === data.id_produk);
             await APIBobotProduk.addBobotProduk(data);
             await getAllBobotProduk();
@@ -353,7 +378,7 @@ async function confirmAction() {
                                 optionLabel="nama_bobot"
                                 optionValue="_id"
                                 placeholder="Pilih Kategori"
-                                class="w-full xl:w-[75%]"
+                                class="w-full xl:w-[75%] mb-4"
                                 :class="errors.bobotSubKriteria.some((err) => err.id === subKriteria._id) ? 'p-invalid' : ''"
                                 showClear
                             />

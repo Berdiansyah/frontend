@@ -11,8 +11,9 @@ const BobotSubKriteria = () => import('@/views/BobotSubKriteria.vue');
 const User = () => import('@/views/User.vue');
 const ChangePassword = () => import('@/views/ChangePassword.vue');
 const Profile = () => import('@/views/Profile.vue');
-const ForgotPassword = () => import('@/views/ForgotPassword.vue')
-const ResetPassword = () => import('@/views/ResetPassword.vue')
+const ForgotPassword = () => import('@/views/ForgotPassword.vue');
+const ResetPassword = () => import('@/views/ResetPassword.vue');
+const Hasil = () => import('@/views/Hasil.vue');
 
 const router = createRouter({
     history: createWebHistory(),
@@ -73,6 +74,11 @@ const router = createRouter({
                     path: '/change-password',
                     name: 'change-password',
                     component: ChangePassword
+                },
+                {
+                    path: '/hasil',
+                    name: 'hasil',
+                    component: Hasil
                 }
             ],
             meta: {
@@ -93,7 +99,7 @@ const router = createRouter({
             path: '/reset-password/:token', // Rute reset password dengan parameter token
             name: 'ResetPassword',
             component: ResetPassword,
-            props: true, // Mengirim parameter `token` ke komponen sebagai props
+            props: true // Mengirim parameter `token` ke komponen sebagai props
         }
     ]
 });
