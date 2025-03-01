@@ -17,7 +17,7 @@ const titlePage = ref('Daftar Bobot Produk');
 const headerModal = ref('');
 const isDeleteModal = ref(false);
 const temporaryId = ref('');
-const selectedValue = ref('');
+const selectedValue = ref(null);
 const toast = useToast();
 const currentTree = ref(0);
 const isLoading = ref(false);
@@ -29,7 +29,7 @@ const listProduk = ref([]);
 const listKriteria = ref([]);
 const listSubKriteria = ref([]);
 const listBobotSubKriteria = ref([]);
-const selectedProduk = ref('');
+const selectedProduk = ref(null);
 const oldProduk = ref('');
 const selectedBobotSubKriteria = ref([]);
 
@@ -51,7 +51,7 @@ const onRowCollapse = () => {
 
 // Form validation
 const errors = ref({
-    selectedProduk: '',
+    selectedProduk: null,
     bobotSubKriteria: []
 });
 const actionType = {
@@ -76,7 +76,7 @@ onMounted(async () => {
 });
 
 watch(selectedProduk, (newValue) => {
-    if (!newValue) {
+    if (selectedProduk === null) {
         errors.value.selectedProduk = '*Produk harus dipilih!';
     } else {
         errors.value.selectedProduk = '';
@@ -84,28 +84,30 @@ watch(selectedProduk, (newValue) => {
 });
 
 // Modify the watch for selectedBobotSubKriteria
-watch(
-    selectedBobotSubKriteria,
-    (newSelections) => {
-        // Reset error messages
-        errors.value.bobotSubKriteria = [];
+// watch(
+//     selectedBobotSubKriteria,
+//     (newSelections) => {
+//         // Reset error messages
+//         // errors.value.bobotSubKriteria = [];
 
-        // Validate each sub-kriteria
-        listSubKriteria.value.forEach((subKriteria, index) => {
-            // Check if a value has been selected for this sub-kriteria
-            const selectedValue = newSelections[index];
+//         // Validate each sub-kriteria
+//         if (selectedBobotSubKriteria.value.length == 0) {
+//             listSubKriteria.value.forEach((subKriteria, index) => {
+//                 // Check if a value has been selected for this sub-kriteria
+//                 const selectedValue = newSelections[index];
 
-            if (!selectedValue) {
-                // Create an error message for unselected sub-kriteria
-                errors.value.bobotSubKriteria.push({
-                    id: subKriteria._id,
-                    message: `*Bobot untuk ${subKriteria.nama_sub_kriteria} harus dipilih!`
-                });
-            }
-        });
-    },
-    { deep: true }
-);
+//                 if (!selectedValue) {
+//                     // Create an error message for unselected sub-kriteria
+//                     errors.value.bobotSubKriteria.push({
+//                         id: subKriteria._id,
+//                         message: `*Bobot untuk ${subKriteria.nama_sub_kriteria} harus dipilih!`
+//                     });
+//                 }
+//             });
+//         }
+//     },
+//     { deep: true }
+// );
 
 // Validation functions
 function validateForm() {
@@ -172,8 +174,8 @@ async function getAllBobotSubKriteria() {
     listBobotSubKriteria.value = response.data;
 }
 
-async function showFormAddEdit(id = '') {
-    if (id.length > 0 || id !== null) {
+async function showFormAddEdit(id) {
+    if (id) {
         formVisible.value = true;
         const response = await APIBobotProduk.getBobotProdukById({ _id: id });
         const data = response.data;
@@ -187,6 +189,7 @@ async function showFormAddEdit(id = '') {
         titlePage.value = 'Edit Bobot Produk';
         clearErrors();
     } else {
+        console.log('masuk');
         formVisible.value = true;
         titlePage.value = 'Tambah Bobot Produk';
     }
@@ -194,9 +197,8 @@ async function showFormAddEdit(id = '') {
 
 function clearErrors() {
     errors.value = {
-        TypePreferensi: '',
-        kategori: '',
-        kategoriLainnya: ''
+        selectedProduk: '',
+        bobotSubKriteria: []
     };
 }
 
@@ -205,8 +207,9 @@ function backFromForm() {
     titlePage.value = 'Daftar Bobot Produk';
     temporaryId.value = '';
     oldProduk.value = '';
-    selectedProduk.value = '';
+    selectedProduk.value = null;
     selectedBobotSubKriteria.value = [];
+    console.log(selectedValue.value);
     clearErrors();
 }
 
@@ -330,7 +333,7 @@ async function confirmAction() {
     <div class="flex flex-col justify-between gap-9">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">{{ titlePage }}</h1>
-            <Button v-if="!formVisible" label="Tambah Bobot Produk" icon="pi pi-plus" @click="showFormAddEdit" />
+            <Button v-if="!formVisible" label="Tambah Bobot Produk" icon="pi pi-plus" @click="showFormAddEdit()" />
             <Button v-if="formVisible" label="Kembali" icon="pi pi-arrow-left" @click="backFromForm" severity="info" />
         </div>
 
@@ -358,8 +361,8 @@ async function confirmAction() {
             <div class="grid grid-cols-12 gap-2">
                 <label for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Produk </label>
                 <div class="col-span-12 md:col-span-10">
-                    <div class="flex flex-col gap-2">
-                        <Dropdown v-model="selectedProduk" :options="listProduk" optionLabel="produk" optionValue="_id" placeholder="Pilih Kategori" class="w-full xl:w-[75%]" :class="errors.selectedProduk.length > 0 ? 'p-invalid' : ''" showClear />
+                    <div class="flex flex-col">
+                        <Dropdown v-model="selectedProduk" :options="listProduk" optionLabel="produk" optionValue="_id" placeholder="Pilih Produk" class="w-full xl:w-[75%]" :class="errors.selectedProduk !== null ? 'p-invalid' : ''" showClear />
                         <small class="text-red-500" v-if="errors.selectedProduk">*{{ errors.selectedProduk }}</small>
                     </div>
                 </div>
@@ -371,14 +374,14 @@ async function confirmAction() {
                 <div v-for="(subKriteria, index) in listSubKriteria" :key="index" class="grid grid-cols-12 gap-2">
                     <label v-if="kriteria._id === subKriteria.id_kriteria" for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0 ml-2">{{ subKriteria.nama_sub_kriteria }} </label>
                     <div v-if="kriteria._id === subKriteria.id_kriteria" class="col-span-12 md:col-span-10">
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2 mb-4">
                             <Dropdown
                                 v-model="selectedBobotSubKriteria[index]"
                                 :options="listBobotSubKriteria.filter((data) => data.id_sub_kriteria === subKriteria._id)"
                                 optionLabel="nama_bobot"
                                 optionValue="_id"
-                                placeholder="Pilih Kategori"
-                                class="w-full xl:w-[75%] mb-4"
+                                :placeholder="`Pilih Bobot ${subKriteria.nama_sub_kriteria}`"
+                                class="w-full xl:w-[75%]"
                                 :class="errors.bobotSubKriteria.some((err) => err.id === subKriteria._id) ? 'p-invalid' : ''"
                                 showClear
                             />
@@ -423,4 +426,3 @@ async function confirmAction() {
     border-color: #dc2626;
 }
 </style>
-@/service/BobotProdukService

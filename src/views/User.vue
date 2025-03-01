@@ -1,8 +1,8 @@
 <script setup lang="js">
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIUser } from '@/service/UserService';
 import { Button, Column, DataTable, Dialog, useToast } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
-import HamsterLoader from '@/components/HamsterLoader.vue';
 
 //data template
 const dialogVisible = ref(false);
@@ -21,7 +21,7 @@ const isLoading = ref(false);
 const listUsers = ref([]);
 const inputName = ref('');
 const inputEmail = ref('');
-const selectedRole = ref('');
+const selectedRole = ref(null);
 const inputPassword = ref('');
 const inputRePassword = ref('');
 const showPassword = ref(false);
@@ -224,7 +224,7 @@ function backFromForm() {
     titlePage.value = 'Daftar Type Preferensi';
     inputName.value = '';
     inputEmail.value = '';
-    selectedRole.value = '';
+    selectedRole.value = null;
     temporaryId.value = '';
     clearErrors();
 }
@@ -408,7 +408,7 @@ function toggleRePassword() {
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2 relative">
                         <InputText v-model="inputPassword" :type="showPassword ? 'text' : 'password'" placeholder="Masukkan Password" class="w-full xl:w-[75%]" :class="errors.password ? 'p-invalid' : ''" />
-                        <i :class="showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'" class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500" @click="togglePassword"></i>
+                        <i :class="showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'" class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 xl:w-[28%]" @click="togglePassword"></i>
                         <small class="text-red-500" v-if="errors.password">*{{ errors.password }}</small>
                     </div>
                 </div>
@@ -420,7 +420,7 @@ function toggleRePassword() {
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2 relative">
                         <InputText v-model="inputRePassword" :type="showRePassword ? 'text' : 'password'" placeholder="Masukkan Ulang Password" class="w-full xl:w-[75%]" :class="errors.rePassword ? 'p-invalid' : ''" />
-                        <i :class="showRePassword ? 'pi pi-eye-slash' : 'pi pi-eye'" class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500" @click="toggleRePassword"></i>
+                        <i :class="showRePassword ? 'pi pi-eye-slash' : 'pi pi-eye'" class="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500 xl:w-[28%]" @click="toggleRePassword"></i>
                         <small class="text-red-500" v-if="errors.rePassword">*{{ errors.rePassword }}</small>
                     </div>
                 </div>

@@ -139,7 +139,7 @@ const calculatePreference = (d, type, p, q, s) => {
             if (d <= q) return 0;
             if (d > p) return 1;
             return 0.5;
-        case 'Linear with indifference':
+        case 'Linier Quasi':
             if (d <= q) return 0;
             if (d > p) return 1;
             return (d - q) / (p - q);
@@ -228,6 +228,17 @@ const resetCalculation = () => {
     activeView.value = 'data';
     showResults.value = false;
 };
+
+const groupedNormalizedData = computed(() => {
+    const grouped = {};
+    normalizedData.value.forEach((product) => {
+        if (!grouped[product.kategori]) {
+            grouped[product.kategori] = [];
+        }
+        grouped[product.kategori].push(product);
+    });
+    return grouped;
+});
 </script>
 <template>
     <HamsterLoader :is-loading="isLoading" />
@@ -262,25 +273,33 @@ const resetCalculation = () => {
                 <!-- Normalized Data -->
                 <div class="bg-white p-4 rounded-lg shadow">
                     <h2 class="text-xl font-semibold mb-3">1. Data Ternormalisasi</h2>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
-                                    <th v-for="(criterion, index) in normalizedData[0]?.criteria" :key="index" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                        {{ criterion.kriteria }}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="(product, index) in normalizedData" :key="index">
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ product.produk }}</td>
-                                    <td v-for="(criterion, cIndex) in product.criteria" :key="cIndex" class="px-6 py-4 whitespace-nowrap">
-                                        {{ criterion.value }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div v-for="(products, category) in groupedNormalizedData" :key="category" class="mb-6">
+                        <h3 class="text-lg font-medium text-gray-700 mb-2">Kategori: {{ category }}</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
+                                        <th v-for="(criterion, index) in products[0]?.criteria" :key="index" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <div>{{ criterion.kriteria }}</div>
+                                            <div class="text-xs text-gray-400 font-normal">{{ criterion.min_max }} | {{ criterion.type }}</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr v-for="(product, index) in products" :key="index" :class="{ 'bg-gray-50': index % 2 === 0 }">
+                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-700">
+                                            {{ product.produk }}
+                                        </td>
+                                        <td v-for="(criterion, cIndex) in product.criteria" :key="cIndex" class="px-6 py-4 whitespace-nowrap text-gray-600">
+                                            <span class="inline-block min-w-[60px] text-right">
+                                                {{ criterion.value.toFixed(2) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 

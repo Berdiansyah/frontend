@@ -3,7 +3,7 @@ import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIKriteria } from '@/service/KriteriaService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
 import { APITypePreferensi } from '@/service/TypePreferensiService';
-import { Button, Column, Dialog, TreeTable, useToast } from 'primevue';
+import { Button, Column, Dialog, InputText, TreeTable, useToast } from 'primevue';
 import { onMounted, ref } from 'vue';
 
 //data template
@@ -29,9 +29,9 @@ const selectedKriteria = ref('');
 const selectedTypePreferensi = ref('');
 const inputSubKriteria = ref('');
 const selectedMinMax = ref('');
-const inputThsP = ref('');
-const inputThsQ = ref('');
-const inputThsS = ref('');
+const inputThsP = ref(0);
+const inputThsQ = ref(0);
+const inputThsS = ref(0);
 
 const listMinMax = [
     { label: 'Min', value: 'min' },
@@ -181,9 +181,9 @@ function backFromForm() {
     selectedTypePreferensi.value = '';
     inputSubKriteria.value = '';
     selectedMinMax.value = '';
-    inputThsP.value = '';
-    inputThsQ.value = '';
-    inputThsS.value = '';
+    inputThsP.value = 0;
+    inputThsQ.value = 0;
+    inputThsS.value = 0;
     temporaryId.value = '';
     onRowCollapse();
     clearErrors();
@@ -385,7 +385,7 @@ async function confirmAction() {
                 <label for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Threshold P</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <InputNumber v-model="inputThsP" type="number" default-value="0" placeholder="Masukan Nilai Threshold P" class="w-full xl:w-[75%]" :class="errors.thresholdP.length > 0 ? 'p-invalid' : ''" />
+                        <InputText v-model="inputThsP" type="number" default-value="0" placeholder="Masukan Nilai Threshold P" class="w-full xl:w-[75%]" :class="errors.thresholdP.length > 0 ? 'p-invalid' : ''" />
                         <small class="text-red-500" v-if="errors.thresholdP">*{{ errors.thresholdP }}</small>
                     </div>
                 </div>
@@ -395,7 +395,7 @@ async function confirmAction() {
                 <label for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Threshold Q</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <InputNumber v-model="inputThsQ" type="number" default-value="0" placeholder="Masukan Nilai Threshold Q" class="w-full xl:w-[75%]" :class="errors.thresholdQ.length > 0 ? 'p-invalid' : ''" />
+                        <InputText v-model="inputThsQ" type="number" default-value="0" placeholder="Masukan Nilai Threshold Q" class="w-full xl:w-[75%]" :class="errors.thresholdQ.length > 0 ? 'p-invalid' : ''" />
                         <small class="text-red-500" v-if="errors.thresholdQ">*{{ errors.thresholdQ }}</small>
                     </div>
                 </div>
@@ -405,7 +405,7 @@ async function confirmAction() {
                 <label for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Threshold S</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <InputNumber v-model="inputThsS" type="number" default-value="0" placeholder="Masukan Nilai Thresshold S" class="w-full xl:w-[75%]" :class="errors.thresholdS.length > 0 ? 'p-invalid' : ''" />
+                        <InputText v-model="inputThsS" type="number" default-value="0" placeholder="Masukan Nilai Thresshold S" class="w-full xl:w-[75%]" :class="errors.thresholdS.length > 0 ? 'p-invalid' : ''" />
                         <small class="text-red-500" v-if="errors.thresholdS">*{{ errors.thresholdS }}</small>
                     </div>
                 </div>

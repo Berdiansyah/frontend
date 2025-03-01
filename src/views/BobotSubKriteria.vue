@@ -204,7 +204,7 @@ async function formEditBobotSubKriteria(id, nama_bobot) {
 
     tempNamaBobot.value = nama_bobot;
     formVisible.value = true;
-    titlePage.value = 'Edit Type Preferensi';
+    titlePage.value = 'Edit Bobot Sub Kriteria';
     temporaryId.value = id;
     clearErrors();
 }
@@ -219,7 +219,7 @@ function clearErrors() {
 
 function backFromForm() {
     formVisible.value = false;
-    titlePage.value = 'Daftar Type Preferensi';
+    titlePage.value = 'Daftar Bobot Sub Kriteria';
     temporaryId.value = '';
     selectedSubKriteria.value = null;
     inputNamaBobot.value = '';
@@ -243,10 +243,10 @@ const showDialog = (type, value = null) => {
 
 function confirmDelete(id) {
     const product = listBobotSubKriteria.value.find((item) => item._id === id);
-    headerModal.value = 'Konfirmasi Hapus Type Preferensi';
+    headerModal.value = 'Konfirmasi Hapus Bobot Sub Kriteria';
     isDeleteModal.value = true;
     temporaryId.value = id;
-    showDialog('Hapus', product);
+    showDialog('Hapus', product.nama_bobot);
 }
 
 function findNode(key, nodes) {
@@ -306,7 +306,7 @@ async function confirmAction() {
             isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil dihapus', life: 3000 });
         } catch (error) {
-            dialogVisible.value = false
+            dialogVisible.value = false;
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
         }
@@ -319,7 +319,7 @@ async function confirmAction() {
             isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil diubah', life: 3000 });
         } catch (error) {
-            dialogVisible.value = false
+            dialogVisible.value = false;
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         }
@@ -332,7 +332,7 @@ async function confirmAction() {
             isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Sub Kriteria berhasil ditambahkan', life: 3000 });
         } catch (error) {
-            dialogVisible.value = false
+            dialogVisible.value = false;
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         }
@@ -391,7 +391,7 @@ async function confirmAction() {
                 <label for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Nilai Bobot</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <InputText v-model="inputNilaiBobot" type="text" placeholder="Masukan Nama Type Preferensi" class="w-full xl:w-[75%]" :class="errors.nilaiBobot ? 'p-invalid' : ''" />
+                        <InputText v-model="inputNilaiBobot" type="text" placeholder="Masukan Nilai Bobot" class="w-full xl:w-[75%]" :class="errors.nilaiBobot ? 'p-invalid' : ''" />
                         <small class="text-red-500" v-if="errors.nilaiBobot">*{{ errors.nilaiBobot }}</small>
                     </div>
                 </div>
