@@ -241,6 +241,7 @@ async function confirmAction() {
             dialogVisible.value = false;
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+            isLoading.value = false;
         }
     } else if (currentActionType.value === actionType.edit) {
         try {
@@ -255,6 +256,7 @@ async function confirmAction() {
             dialogVisible.value = false;
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+            isLoading.value = false;
         }
     } else {
         try {
@@ -269,6 +271,7 @@ async function confirmAction() {
             dialogVisible.value = false;
             console.error(error);
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+            isLoading.value = false;
         }
     }
 }

@@ -11,6 +11,11 @@ class ApiSubKriteria {
         return response.data;
     }
 
+    async getSubKriteriLength() {
+        const response = await axiosCall({ url: `/subKriteria/getSubKriteriaLength`, method: 'get' });
+        return response.data;
+    }
+
     async getSubKriteriaById(subKriteria) {
         console.log(subKriteria);
         const response = await axiosCall({ url: `/subKriteria/getSubKriteriaById`, method: 'post', data: subKriteria });

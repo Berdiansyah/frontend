@@ -79,7 +79,8 @@ onMounted(async () => {
 
 // watch(inputKriteria, (newValue) => {
 //     if (!newValue || newValue.trim() === '') {
-//         errors.value.Kriteria = 'Nama Kriteria harus diisi';
+//         errors.value.Krit
+// isLoading.value = false;eria = 'Nama Kriteria harus diisi';
 //     } else if (newValue.length < 3) {
 //         errors.value.Kriteria = 'Nama Kriteria minimal 3 karakter';
 //     } else {
@@ -276,6 +277,7 @@ async function confirmAction() {
         } catch (error) {
             dialogVisible.value = false;
             console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
         }
     } else if (currentActionType.value === actionType.edit) {
@@ -289,6 +291,7 @@ async function confirmAction() {
         } catch (error) {
             dialogVisible.value = false;
             console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         }
     } else {
@@ -302,6 +305,7 @@ async function confirmAction() {
         } catch (error) {
             dialogVisible.value = false;
             console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         }
     }

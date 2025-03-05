@@ -176,6 +176,7 @@ async function confirmAction() {
         } catch (error) {
             dialogVisible.value = false;
             console.log(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
         }
     } else if (currentActionType.value === actionType.edit) {
@@ -189,6 +190,7 @@ async function confirmAction() {
         } catch (error) {
             dialogVisible.value = false;
             console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         }
     } else {
@@ -202,6 +204,7 @@ async function confirmAction() {
         } catch (error) {
             dialogVisible.value = false;
             console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         }
     }

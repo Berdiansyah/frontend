@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue';
-
+import { computed } from 'vue';
+import { useUserStore } from '@/store/UserStore';
 import AppMenuItem from './AppMenuItem.vue';
 
-const model = ref([
+const userStore = useUserStore();
+const model = computed(() => [
     {
         label: 'Sistem Penunjang Keputusan',
         items: [
@@ -15,7 +16,7 @@ const model = ref([
             { label: 'Bobot Sub Kriteria', icon: 'pi pi-slack', to: '/bobot-sub-kriteria' },
             { label: 'Tipe Preferensi', icon: 'pi pi-objects-column', to: '/tipe-preferensi' },
             { label: 'Hasil', icon: 'pi pi-check-circle', to: '/hasil' },
-            { label: 'User', icon: 'pi pi-users', to: '/user' }
+            ...(userStore.role === 'admin' ? [{ label: 'User', icon: 'pi pi-users', to: '/user' }] : [])
         ]
     }
 ]);

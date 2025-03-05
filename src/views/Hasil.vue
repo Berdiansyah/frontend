@@ -2,15 +2,10 @@
 import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIHasil } from '@/service/HasilService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
-import { Column, TreeTable } from 'primevue';
+import { useUserStore } from '@/store/UserStore';
+import { Column, Dialog, TreeTable, useToast } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
 
-// const selectedCategory = ref('');
-// const listKategori = ref([]);
-// const listPlainDataToCalculate = ref([]);
-// const listTreeDataTable = ref([]);
-// const isLoading = ref(false);
-// const expandedKeys = ref({});
 const selectedCategory = ref('');
 const listKategori = ref([]);
 const listPlainDataToCalculate = ref([]);
@@ -19,6 +14,15 @@ const isLoading = ref(false);
 const expandedKeys = ref({});
 const activeView = ref('data'); // 'data', 'calculation', 'results'
 const showResults = ref(false);
+const subKriteriaLength = ref(0);
+const saveModal = ref(false);
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const userStore = useUserStore();
+const toast = useToast();
+const listHasil = ref([]);
+const showHasil = ref(false);
+const temporaryId = ref('');
+const deleteModal = ref(false);
 
 onMounted(() => {
     isLoading.value = true;
@@ -26,6 +30,8 @@ onMounted(() => {
         getKategori();
         getSubKriteria();
         getAllDataToCalculate();
+        getAllHasil();
+        temporaryId.value = '';
     } catch (error) {
         console.error(error);
     }
@@ -39,13 +45,14 @@ async function getKategori() {
 
 async function getSubKriteria() {
     const response = await APISubKriteria.getAllSubKriteria();
+    const response2 = await APISubKriteria.getSubKriteriLength();
     listTreeDataTable.value = response.data;
+    subKriteriaLength.value = response2.data;
 }
 
 async function getAllDataToCalculate() {
     const response = await APIHasil.getAllDataToCalculate();
     listPlainDataToCalculate.value = response.data;
-    console.log(listPlainDataToCalculate.value);
 }
 
 const expandAll = () => {
@@ -130,21 +137,21 @@ const calculatePreference = (d, type, p, q, s) => {
             return d <= 0 ? 0 : 1;
         case 'Linear':
             if (d <= 0) return 0;
-            if (d > p) return 1;
-            return d / p;
+            if (d <= p) return (d - q) / (p - q);
+            return 1;
         case 'Quasi':
             if (d <= q) return 0;
             return 1;
         case 'Level':
             if (d <= q) return 0;
-            if (d > p) return 1;
-            return 0.5;
+            if (d <= p) return 0.5;
+            return 1;
         case 'Linier Quasi':
             if (d <= q) return 0;
             if (d > p) return 1;
             return (d - q) / (p - q);
         case 'Gaussian':
-            if (d <= 0) return 0;
+            // if (d <= 0) return 0;
             return 1 - Math.exp(-(d * d) / (2 * s * s));
         default:
             return 0;
@@ -153,32 +160,65 @@ const calculatePreference = (d, type, p, q, s) => {
 
 // Calculate preference indices
 const preferenceIndices = computed(() => {
-    const products = normalizedData.value;
+    const products = listPlainDataToCalculate.value;
     const n = products.length;
-    const indices = Array(n)
-        .fill()
-        .map(() => Array(n).fill(0));
+    const subKriteriaCount = subKriteriaLength.value;
 
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-            if (i !== j) {
-                let sum = 0;
-                const criteriaCount = products[i].criteria.length;
+    // console.log('Total Products:', n);
+    // console.log('Sub-Kriteria Count:', subKriteriaCount);
 
-                products[i].criteria.forEach((criterion, k) => {
-                    const d = criterion.min_max === 'max' ? criterion.value - products[j].criteria[k].value : products[j].criteria[k].value - criterion.value;
+    return products.map((productI, i) => {
+        return products.map((productJ, j) => {
+            if (i === j) return 0;
 
-                    const pref = calculatePreference(d, criterion.type, criterion.p, criterion.q, criterion.s);
+            // console.log(`Comparing Product ${i} (${productI.produk}) with Product ${j} (${productJ.produk})`);
 
-                    sum += pref / criteriaCount;
+            let totalPreference = 0;
+            let criteriaBreakdown = [];
+
+            productI.bobot_produk.forEach((kriteria, kritIndex) => {
+                let criteriaPreference = 0;
+
+                // console.log(`Kriteria: ${kriteria.kriteria}`);
+
+                kriteria.sub_kriteria.forEach((subKriteria) => {
+                    const subKriteriaJ = productJ.bobot_produk[kritIndex].sub_kriteria.find((sk) => sk.nama_sub_kriteria === subKriteria.nama_sub_kriteria);
+
+                    const d = parseFloat(subKriteria.nilai_bobot) - parseFloat(subKriteriaJ.nilai_bobot);
+
+                    // console.log(`Sub-Kriteria: ${subKriteria.nama_sub_kriteria}`);
+                    // console.log(`Product I Value: ${subKriteria.nama_bobot} (${subKriteria.nilai_bobot})`);
+                    // console.log(`Product J Value: ${subKriteriaJ.nama_bobot} (${subKriteriaJ.nilai_bobot})`);
+                    // console.log(`Difference (d): ${d}`);
+
+                    const subPreference = calculatePreference(d, subKriteria.type, parseFloat(subKriteria.p), parseFloat(subKriteria.q), parseFloat(subKriteria.s));
+
+                    // console.log(`Sub-Preference: ${subPreference}`);
+                    // console.log(subPreference);
+
+                    criteriaPreference += (1 / subKriteriaCount) * subPreference;
+
+                    criteriaBreakdown.push({
+                        subKriteria: subKriteria.nama_sub_kriteria,
+                        namaProduk: subKriteria.nama_bobot,
+                        nilaiProdukI: subKriteria.nilai_bobot,
+                        namaProdukJ: subKriteriaJ.nama_bobot,
+                        nilaiProdukJ: subKriteriaJ.nilai_bobot,
+                        d: d,
+                        subPreference: subPreference
+                    });
                 });
 
-                indices[i][j] = sum;
-            }
-        }
-    }
+                // console.log(`Criteria Preference: ${criteriaPreference}`);
+                totalPreference += criteriaPreference;
+            });
 
-    return indices;
+            // console.log(`Total Preference: ${totalPreference}`);
+            // console.log('Criteria Breakdown:', criteriaBreakdown);
+
+            return totalPreference;
+        });
+    });
 });
 
 // Calculate positive and negative flows
@@ -227,6 +267,7 @@ const showFinalResults = () => {
 const resetCalculation = () => {
     activeView.value = 'data';
     showResults.value = false;
+    temporaryId.value = '';
 };
 
 const groupedNormalizedData = computed(() => {
@@ -239,22 +280,225 @@ const groupedNormalizedData = computed(() => {
     });
     return grouped;
 });
+
+function showSaveModal() {
+    saveModal.value = true;
+    console.log('masuk ga bang ?');
+}
+
+async function saveHasil() {
+    isLoading.value = true;
+    const timestamp = new Date();
+    const dataMounth = MONTHS[timestamp.getMonth()];
+
+    // Buat objek Date dari timestamp
+    const date = new Date(timestamp);
+
+    // Ambil komponen waktu dan tanggal
+    const hours = String(date.getHours()).padStart(2, '0'); // Jam (2 digit)
+    const minutes = String(date.getMinutes()).padStart(2, '0'); // Menit (2 digit)
+    const seconds = String(date.getSeconds()).padStart(2, '0'); // Detik (2 digit)
+    const day = String(date.getDate()).padStart(2, '0'); // Tanggal (2 digit)
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan (2 digit, dimulai dari 0)
+    const year = date.getFullYear(); // Tahun
+
+    // Format ke dalam hh:mm:ss dd/mm/yyyy
+    const formattedDate = `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+
+    const listData = ranking.value.map((item, index) => {
+        return {
+            rank: index + 1,
+            product: item.product,
+            kategori: item.kategori,
+            netFlow: item.netFlow
+        };
+    });
+
+    const data = {
+        create_by: userStore.name,
+        create_date: formattedDate,
+        month: dataMounth,
+        data: listData
+    };
+    console.log(data);
+    try {
+        await APIHasil.addhasil(data).then(() => {
+            saveModal.value = false;
+            isLoading.value = false;
+            resetCalculation();
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Berhasil menyimpan hasil perhitungan', life: 3000 });
+        });
+    } catch (error) {
+        console.error(error);
+        saveModal.value = false;
+        isLoading.value = false;
+        toast.add({ severity: 'error', summary: 'Error', detail: `Gagal menyimpan hasil perhitungan, ${error.response.data.message}`, life: 3000 });
+    }
+}
+
+async function getAllHasil() {
+    const response = await APIHasil.getAllHasil();
+    const listData = response.data;
+    listData.map((item) => {
+        item.create_date = new Date(item.create_date).toLocaleDateString();
+        item.data = item.data.length;
+        item.month = item.month;
+        item.create_by = item.create_by;
+    });
+    listHasil.value = listData;
+    console.log(listHasil.value);
+}
+
+function back() {
+    activeView.value = 'calculation';
+}
+
+function showTableHasil() {
+    console.log('showTableHasil');
+    showHasil.value = true;
+}
+
+function confirmDelete(id) {
+    temporaryId.value = id;
+    deleteModal.value = true;
+    console.log(temporaryId.value);
+}
+
+async function deleteDataHasil() {
+    isLoading.value = true;
+    try {
+        await APIHasil.deleteHasil({ _id: temporaryId.value }).then(() => {
+            getAllHasil();
+            isLoading.value = false;
+            deleteModal.value = false;
+            toast.add({ severity: 'success', summary: 'Success', detail: 'Berhasil menghapus data', life: 3000 });
+        });
+    } catch (error) {
+        console.error(error);
+        isLoading.value = false;
+        deleteModal.value = false;
+        toast.add({ severity: 'error', summary: 'Error', detail: `Gagal menghapus data, ${error.response.data.message}`, life: 3000 });
+    }
+}
 </script>
 <template>
     <HamsterLoader :is-loading="isLoading" />
     <div class="container mx-auto p-4">
         <div class="mb-8">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center mb-4">
                 <h1 class="text-2xl font-bold">Hasil Perhitungan Menggunakan PROMETHEE</h1>
-                <div class="space-x-4">
-                    <button @click="startCalculation" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" :disabled="activeView !== 'data'">Mulai Perhitungan</button>
-                    <button v-if="showResults" @click="showFinalResults" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600" :disabled="activeView === 'results'">Lihat Hasil Akhir</button>
-                    <button v-if="showResults" @click="resetCalculation" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Reset</button>
+            </div>
+
+            <div class="flex justify-between mb-4">
+                <div>
+                    <button
+                        v-if="showResults"
+                        @click="resetCalculation"
+                        class="px-6 py-2 bg-red-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                        :disabled="activeView === 'results'"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            Reset
+                        </span>
+                    </button>
+                </div>
+                <div class="space-x-4 flex items-center">
+                    <button
+                        @click="startCalculation"
+                        class="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50"
+                        v-if="activeView === 'data' && !showHasil"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Mulai Perhitungan
+                        </span>
+                    </button>
+
+                    <button
+                        @click="showHasil = false"
+                        class="px-6 py-2 bg-teal-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50"
+                        v-if="activeView === 'data' && showHasil"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-11.707a1 1 0 00-1.414 0l-3 3a1 1 0 101.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414l-3-3z" clip-rule="evenodd" />
+                            </svg>
+                            Kembali
+                        </span>
+                    </button>
+
+                    <button
+                        @click="showTableHasil"
+                        class="px-6 py-2 bg-cyan-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-50"
+                        v-if="activeView === 'data'"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            List Hasil
+                        </span>
+                    </button>
+
+                    <button
+                        @click="back"
+                        class="px-6 py-2 bg-slate-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-opacity-50"
+                        v-if="activeView === 'results'"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-11.707a1 1 0 00-1.414 0l-3 3a1 1 0 101.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414l-3-3z" clip-rule="evenodd" />
+                            </svg>
+                            Back
+                        </span>
+                    </button>
+
+                    <button
+                        v-if="showResults"
+                        @click="showFinalResults"
+                        class="px-6 py-2 bg-sky-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-opacity-50"
+                        :disabled="activeView === 'results'"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            Lihat Hasil Akhir
+                        </span>
+                    </button>
+
+                    <button
+                        v-if="showResults"
+                        @click="showSaveModal"
+                        class="px-6 py-2 bg-emerald-600 text-white rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50"
+                    >
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
+                                <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" />
+                            </svg>
+                            Simpan
+                        </span>
+                    </button>
                 </div>
             </div>
 
             <!-- Data View -->
-            <div v-if="activeView === 'data'" class="mb-6 bg-white p-4 rounded-lg shadow">
+            <div v-if="activeView === 'data' && !showHasil" class="mb-6 bg-white p-4 rounded-lg shadow">
                 <h2 class="text-xl font-semibold mb-3">Tabel Normalisasi Bobot Kriteria</h2>
                 <div class="overflow-x-auto">
                     <TreeTable :value="listTreeDataTable" :expandedKeys="expandedKeys" :tableStyle="{ minWidth: '60rem' }">
@@ -269,7 +513,7 @@ const groupedNormalizedData = computed(() => {
             </div>
 
             <!-- Calculation Process View -->
-            <div v-if="activeView === 'calculation'" class="space-y-6">
+            <div v-if="activeView === 'calculation' && !showHasil" class="space-y-6">
                 <!-- Normalized Data -->
                 <div class="bg-white p-4 rounded-lg shadow">
                     <h2 class="text-xl font-semibold mb-3">1. Data Ternormalisasi</h2>
@@ -355,7 +599,7 @@ const groupedNormalizedData = computed(() => {
             </div>
 
             <!-- Final Results View -->
-            <div v-if="activeView === 'results'" class="bg-white p-4 rounded-lg shadow">
+            <div v-if="activeView === 'results' && !showHasil" class="bg-white p-4 rounded-lg shadow">
                 <h2 class="text-xl font-semibold mb-3">Hasil Akhir Perankingan</h2>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -388,4 +632,34 @@ const groupedNormalizedData = computed(() => {
             </div>
         </div>
     </div>
+    <div v-if="showHasil">
+        <DataTable :value="listHasil" tableStyle="min-width: 50rem">
+            <Column field="create_by" header="Dibuat Oleh"></Column>
+            <Column field="create_date" header="Tanggal"></Column>
+            <Column field="month" header="Bulan"></Column>
+            <Column field="data" header="Jumlah Data"></Column>
+            <Column header="Aksi">
+                <template #body="{ data }">
+                    <div class="flex justify-center gap-2">
+                        <Button label="Delete" icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-sm" @click="confirmDelete(data._id)" />
+                    </div>
+                </template>
+            </Column>
+        </DataTable>
+    </div>
+    <Dialog modal header="Simpan Hasil" :visible="saveModal" @hide="saveModal = false">
+        <p>Apakah anda yakin ingin menyimpan hasil perhitungan ini?</p>
+        <template #footer>
+            <Button label="Batal" icon="pi pi-times" class="p-button-text" @click="saveModal = false" />
+            <Button label="Simpan" icon="pi pi-check" class="p-button-text" @click="saveHasil" />
+        </template>
+    </Dialog>
+
+    <Dialog modal header="Simpan Hasil" :visible="deleteModal">
+        <p>Apakah anda yakin ingin menghapus hasil perhitungan ini?</p>
+        <template #footer>
+            <Button label="Batal" icon="pi pi-times" class="p-button-text" @click="deleteModal = false" />
+            <Button label="Hapus" icon="pi pi-trash" class="p-button-text" @click="deleteDataHasil" />
+        </template>
+    </Dialog>
 </template>

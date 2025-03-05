@@ -70,6 +70,7 @@ async function submitForm() {
                 detail: 'Mohon lengkapi semua field yang diperlukan',
                 life: 3000
             });
+            isLoading.value = false;
             return;
         }
 
@@ -84,9 +85,10 @@ async function submitForm() {
         // Request ke backend untuk reset password
         await APIAuth.resetPassword({ token: getToken, newPassword: inputReNewPassword.value });
         successFlag.value = true;
-    } catch (error) {
+    } catch (error) {   
         console.error(error);
-        toast.add({ severity: 'error', summary: 'Error', detail: response.data.message, life: 3000 });
+        toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
+        isLoading.value = false;
     }
     isLoading.value = false;
 }

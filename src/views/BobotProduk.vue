@@ -79,7 +79,7 @@ watch(selectedProduk, (newValue) => {
     if (selectedProduk === null) {
         errors.value.selectedProduk = '*Produk harus dipilih!';
     } else {
-        errors.value.selectedProduk = '';
+        errors.value.selectedProduk = null;
     }
 });
 
@@ -296,6 +296,7 @@ async function confirmAction() {
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Produk berhasil dihapus', life: 3000 });
         } catch (e) {
             dialogVisible.value = false;
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi kesalahan saat menghapus bobot produk ini, harap mencoba kembali', life: 3000 });
         }
     } else if (currentActionType.value === actionType.edit) {
@@ -308,6 +309,7 @@ async function confirmAction() {
             toast.add({ severity: 'success', summary: 'Success', detail: 'Bobot Produk berhasil diubah', life: 3000 });
         } catch (e) {
             dialogVisible.value = false;
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: e.response.data.message, life: 3000 });
         }
     } else {
@@ -322,6 +324,7 @@ async function confirmAction() {
             toast.add({ severity: 'success', summary: 'Success', detail: `Berhasil menambahkan Bobot Produk ${produk.produk}`, life: 3000 });
         } catch (e) {
             dialogVisible.value = false;
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: e.response.data.message, life: 3000 });
         }
     }
@@ -362,7 +365,7 @@ async function confirmAction() {
                 <label for="name3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Produk </label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col">
-                        <Dropdown v-model="selectedProduk" :options="listProduk" optionLabel="produk" optionValue="_id" placeholder="Pilih Produk" class="w-full xl:w-[75%]" :class="errors.selectedProduk !== null ? 'p-invalid' : ''" showClear />
+                        <Dropdown v-model="selectedProduk" :options="listProduk" optionLabel="produk" optionValue="_id" placeholder="Pilih Produk" class="w-full xl:w-[75%]" :class="errors.selectedProduk ? 'p-invalid' : ''" showClear />
                         <small class="text-red-500" v-if="errors.selectedProduk">*{{ errors.selectedProduk }}</small>
                     </div>
                 </div>

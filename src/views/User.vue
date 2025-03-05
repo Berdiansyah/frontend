@@ -304,6 +304,8 @@ async function confirmAction() {
             isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: `User ${user.name} berhasil dihapus`, life: 3000 });
         } catch (error) {
+            console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
             dialogVisible.value = false;
         }
@@ -318,6 +320,8 @@ async function confirmAction() {
             isLoading.value = false;
             toast.add({ severity: 'success', summary: 'Success', detail: `User ${user.name} berhasil diubah`, life: 3000 });
         } catch (error) {
+            console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
             dialogVisible.value = false;
         }
@@ -331,6 +335,7 @@ async function confirmAction() {
             toast.add({ severity: 'success', summary: 'Success', detail: `User ${data.name} berhasil ditambahkan.`, life: 3000 });
         } catch (error) {
             console.error(error);
+            isLoading.value = false;
             toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
             dialogVisible.value = false;
         }
