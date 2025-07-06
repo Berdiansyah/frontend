@@ -3,15 +3,18 @@ import { APIKriteria } from '@/service/KriteriaService';
 import { APIProduk } from '@/service/ProdukService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
 import { onMounted, ref } from 'vue';
+import { APIHasil } from '@/service/HasilService';
 
 const produk = ref([]);
 const kriteria = ref([]);
 const subKriteria = ref([]);
+const hasil = ref([]);
 
 onMounted(() => {
     getAllProduk();
     getAllKriteria();
     getAllSubKriteria();
+    getAllHasil();
 });
 
 async function getAllProduk() {
@@ -27,6 +30,11 @@ async function getAllKriteria() {
 async function getAllSubKriteria() {
     const response = await APISubKriteria.getAllSubKriteriaNonFormated();
     subKriteria.value = response.data;
+}
+
+async function getAllHasil() {
+    const response = await APIHasil.getAllHasil();
+    hasil.value = response.data;
 }
 </script>
 <template>
@@ -74,7 +82,7 @@ async function getAllSubKriteria() {
             <div class="flex justify-between mb-4">
                 <div>
                     <span class="block text-muted-color font-medium mb-4">Hasil</span>
-                    <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">0</div>
+                    <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ hasil.length }}</div>
                 </div>
                 <div class="flex items-center justify-center bg-purple-100 dark:bg-purple-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
                     <i class="pi pi-check-circle text-purple-500 !text-xl"></i>

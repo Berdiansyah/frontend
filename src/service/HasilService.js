@@ -17,7 +17,7 @@ class ApiHasil {
 	}
 
     async getHasilByMonth(data){
-		const response = await axiosCall({ url: `/hasil/getAllHasil`, method: 'get', data: data });
+		const response = await axiosCall({ url: `/hasil/getHasilByMonth`, method: 'post', data: data });
         return response.data;
 	}
 

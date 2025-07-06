@@ -1,10 +1,11 @@
 import { APIAuth } from '@/service/AuthService';
 import { useUserStore } from '@/store/UserStore';
 import axios from 'axios';
-import router from '@/router';
+import { useRouter } from 'vue-router';
 
 let isRefreshing = false;
 let failedQueue = [];
+const router = useRouter();
 
 const processQueue = (error, token = null) => {
     failedQueue.forEach((prom) => {
@@ -83,6 +84,9 @@ axios.interceptors.response.use(
             await APIAuth.logout();
             userStore.logout;
             localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            router.push('/login');
+            console.log('Token expired');
         }
 
         return Promise.reject(error);

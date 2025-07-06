@@ -4,7 +4,7 @@ import { APIKriteria } from '@/service/KriteriaService';
 import { APISubKriteria } from '@/service/SubKriteriaService';
 import { APITypePreferensi } from '@/service/TypePreferensiService';
 import { Button, Column, Dialog, InputText, TreeTable, useToast } from 'primevue';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 //data template
 const dialogVisible = ref(false);
@@ -25,10 +25,10 @@ const listTreeDataTable = ref([]);
 const inputKriteria = ref('');
 const listKriteria = ref([]);
 const listTypePreferensi = ref([]);
-const selectedKriteria = ref('');
-const selectedTypePreferensi = ref('');
+const selectedKriteria = ref();
+const selectedTypePreferensi = ref();
 const inputSubKriteria = ref('');
-const selectedMinMax = ref('');
+const selectedMinMax = ref();
 const inputThsP = ref(0);
 const inputThsQ = ref(0);
 const inputThsS = ref(0);
@@ -77,20 +77,85 @@ onMounted(async () => {
     isLoading.value = false;
 });
 
-// watch(inputKriteria, (newValue) => {
-//     if (!newValue || newValue.trim() === '') {
-//         errors.value.Krit
-// isLoading.value = false;eria = 'Nama Kriteria harus diisi';
-//     } else if (newValue.length < 3) {
-//         errors.value.Kriteria = 'Nama Kriteria minimal 3 karakter';
-//     } else {
-//         errors.value.Kriteria = '';
-//     }
-// });
+watch(inputKriteria, (newValue) => {
+    if (!newValue || newValue.trim() === '') {
+        errors.value.kriteria = 'Nama Kriteria harus diisi';
+        isLoading.value = false;
+    } else if (newValue.length < 3) {
+        errors.value.kriteria = 'Nama Kriteria minimal 3 karakter';
+    } else {
+        errors.value.kriteria = '';
+    }
+});
+
+watch(inputThsP, (newValue) => {
+    if (newValue === '' || newValue === null || newValue === undefined) {
+        errors.value.thresholdP = 'Threshold P harus diisi';
+    } else if (isNaN(newValue) || parseFloat(newValue) < 0) {
+        errors.value.thresholdP = 'Threshold P harus berupa angka positif atau nol';
+    } else {
+        errors.value.thresholdP = '';
+    }
+});
+
+watch(inputThsQ, (newValue) => {
+    if (newValue === '' || newValue === null || newValue === undefined) {
+        errors.value.thresholdQ = 'Threshold Q harus diisi';
+    } else if (isNaN(newValue) || parseFloat(newValue) < 0) {
+        errors.value.thresholdQ = 'Threshold Q harus berupa angka positif atau nol';
+    } else {
+        errors.value.thresholdQ = '';
+    }
+});
+
+watch(inputThsS, (newValue) => {
+    if (newValue === '' || newValue === null || newValue === undefined) {
+        errors.value.thresholdS = 'Threshold S harus diisi';
+    } else if (isNaN(newValue) || parseFloat(newValue) < 0) {
+        errors.value.thresholdS = 'Threshold S harus berupa angka positif atau nol';
+    } else {
+        errors.value.thresholdS = '';
+    }
+});
+
+watch(selectedMinMax, (newValue) => {
+    if (!newValue || newValue.trim() === '') {
+        errors.value.min_max = 'Min/Max harus dipilih';
+    } else {
+        errors.value.min_max = '';
+    }
+});
+watch(selectedTypePreferensi, (newValue) => {
+    if (!newValue || newValue.trim() === '') {
+        errors.value.type = 'Type Preferensi harus dipilih';
+    } else {
+        errors.value.type = '';
+    }
+});
+
+watch(inputSubKriteria, (newValue) => {
+    if (!newValue || newValue.trim() === '') {
+        errors.value.namaSubKriteria = 'Nama Sub Kriteria harus diisi';
+    } else if (newValue.trim().length < 3) {
+        errors.value.namaSubKriteria = 'Nama Sub Kriteria minimal 3 karakter';
+    } else {
+        errors.value.namaSubKriteria = '';
+    }
+});
+
+watch(selectedKriteria, (newValue) => {
+    if (!newValue || newValue.trim() === '') {
+        errors.value.kriteria = 'Kriteria harus dipilih';
+    } else {
+        errors.value.kriteria = '';
+    }
+});
 
 // Validation functions
 function validateForm() {
     let isValid = true;
+
+    // Reset all errors
     errors.value = {
         kriteria: '',
         type: '',
@@ -100,14 +165,61 @@ function validateForm() {
         thresholdQ: '',
         thresholdS: ''
     };
-    // Validate product name
-    // if (!inputKriteria.value.trim()) {
-    //     errors.value.Kriteria = 'Nama Kriteria harus diisi';
-    //     isValid = false;
-    // } else if (inputKriteria.value.length < 3) {
-    //     errors.value.Kriteria = 'Nama Kriteria minimal 3 karakter';
-    //     isValid = false;
-    // }
+
+    // Validate Kriteria (required)
+    if (!selectedKriteria.value || selectedKriteria.value.trim() === '') {
+        errors.value.kriteria = 'Kriteria harus dipilih';
+        isValid = false;
+    }
+
+    // Validate Type Preferensi (required)
+    if (!selectedTypePreferensi.value || selectedTypePreferensi.value.trim() === '') {
+        errors.value.type = 'Type Preferensi harus dipilih';
+        isValid = false;
+    }
+
+    // Validate Nama Sub Kriteria (required, min 3 characters)
+    if (!inputSubKriteria.value || inputSubKriteria.value.trim() === '') {
+        errors.value.namaSubKriteria = 'Nama Sub Kriteria harus diisi';
+        isValid = false;
+    } else if (inputSubKriteria.value.trim().length < 3) {
+        errors.value.namaSubKriteria = 'Nama Sub Kriteria minimal 3 karakter';
+        isValid = false;
+    }
+
+    // Validate Min/Max (required)
+    if (!selectedMinMax.value || selectedMinMax.value.trim() === '') {
+        errors.value.min_max = 'Min/Max harus dipilih';
+        isValid = false;
+    }
+
+    // Validate Threshold P (required, must be number >= 0)
+    if (inputThsP.value === '' || inputThsP.value === null || inputThsP.value === undefined) {
+        errors.value.thresholdP = 'Threshold P harus diisi';
+        isValid = false;
+    } else if (isNaN(inputThsP.value) || parseFloat(inputThsP.value) < 0) {
+        errors.value.thresholdP = 'Threshold P harus berupa angka positif atau nol';
+        isValid = false;
+    }
+
+    // Validate Threshold Q (required, must be number >= 0)
+    if (inputThsQ.value === '' || inputThsQ.value === null || inputThsQ.value === undefined) {
+        errors.value.thresholdQ = 'Threshold Q harus diisi';
+        isValid = false;
+    } else if (isNaN(inputThsQ.value) || parseFloat(inputThsQ.value) < 0) {
+        errors.value.thresholdQ = 'Threshold Q harus berupa angka positif atau nol';
+        isValid = false;
+    }
+
+    // Validate Threshold S (required, must be number >= 0)
+    if (inputThsS.value === '' || inputThsS.value === null || inputThsS.value === undefined) {
+        errors.value.thresholdS = 'Threshold S harus diisi';
+        isValid = false;
+    } else if (isNaN(inputThsS.value) || parseFloat(inputThsS.value) < 0) {
+        errors.value.thresholdS = 'Threshold S harus berupa angka positif atau nol';
+        isValid = false;
+    }
+
     return isValid;
 }
 
@@ -349,7 +461,7 @@ async function confirmAction() {
                 <label for="email3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Kriteria</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <Dropdown v-model="selectedKriteria" :options="listKriteria" optionLabel="kriteria" optionValue="_id" placeholder="Pilih Kriteria" class="w-full xl:w-[75%]" showClear />
+                        <Dropdown v-model="selectedKriteria" :options="listKriteria" optionLabel="kriteria" optionValue="_id" :class="errors.kriteria.length > 0 ? 'p-invalid' : ''" placeholder="Pilih Kriteria" class="w-full xl:w-[75%]" showClear />
                         <small class="text-red-500" v-if="errors.kriteria">{{ errors.kriteria }}</small>
                     </div>
                 </div>
@@ -359,8 +471,17 @@ async function confirmAction() {
                 <label for="email3" class="flex items-center col-span-12 mb-2 md:col-span-2 md:mb-0">Type Preferensi</label>
                 <div class="col-span-12 md:col-span-10">
                     <div class="flex flex-col gap-2">
-                        <Dropdown v-model="selectedTypePreferensi" :options="listTypePreferensi" optionLabel="type" optionValue="_id" placeholder="Pilih Type Preferensi" class="w-full xl:w-[75%]" showClear />
-                        <small class="text-red-500" v-if="errors.kriteria">{{ errors.kriteria }}</small>
+                        <Dropdown
+                            v-model="selectedTypePreferensi"
+                            :options="listTypePreferensi"
+                            optionLabel="type"
+                            optionValue="_id"
+                            placeholder="Pilih Type Preferensi"
+                            class="w-full xl:w-[75%]"
+                            :class="errors.type.length > 0 ? 'p-invalid' : ''"
+                            showClear
+                        />
+                        <small class="text-red-500" v-if="errors.kriteria">{{ errors.type }}</small>
                     </div>
                 </div>
             </div>

@@ -1,20 +1,20 @@
 <script setup lang="js">
 import FloatingConfigurator from '@/components/FloatingConfigurator.vue';
-import router from '@/router';
+import HamsterLoader from '@/components/HamsterLoader.vue';
 import { APIAuth } from '@/service/AuthService';
 import { APIUser } from '@/service/UserService';
 import { useUserStore } from '@/store/UserStore';
 import { useToast } from 'primevue';
 import { ref, watch } from 'vue';
-import HamsterLoader from '@/components/HamsterLoader.vue';
+import { useRouter } from 'vue-router';
 
 const userStore = useUserStore();
-// const router = useRouter();
 const msgError = ref('');
 const toast = useToast();
 const inputEmail = ref('');
 const inputPassword = ref('');
-const isLoading = ref(false)
+const isLoading = ref(false);
+const router = useRouter();
 
 const errors = ref({
     email: '',
@@ -73,10 +73,11 @@ function validateForm() {
 }
 
 async function submitForm() {
-    isLoading.value = true
+    isLoading.value = true;
     try {
         if (!validateForm()) {
             toast.add({ severity: 'error', summary: 'Error', detail: 'Mohon lengkapi semua field yang diperlukan', life: 3000 });
+            isLoading.value = false;
             return;
         }
 
@@ -92,25 +93,27 @@ async function submitForm() {
             userStore.loginIn(user.data.email, user.data.name, user.data.role, true);
         }
         router.push('/');
+        isLoading.value = false;
     } catch (error) {
         msgError.value = error.response.data.message;
+        isLoading.value = false;
     }
-    isLoading.value = false
 }
 
 function navigateToForgotPassword() {
-    isLoading.value = true
+    isLoading.value = true;
     try {
         router.push('/forgot-password');
     } catch (error) {
         console.error(error);
         toast.add({ severity: 'error', summary: 'Error', detail: 'Terjadi Kesalahan saat memproses aksi, silahkan hubungi tim IT', life: 3000 });
     }
-    isLoading.value = false
+    isLoading.value = false;
 }
 </script>
 
 <template>
+    <Toast/>
     <HamsterLoader :is-loading="isLoading" />
     <FloatingConfigurator />
     <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">

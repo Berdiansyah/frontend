@@ -327,6 +327,7 @@ async function saveHasil() {
             isLoading.value = false;
             resetCalculation();
             toast.add({ severity: 'success', summary: 'Success', detail: 'Berhasil menyimpan hasil perhitungan', life: 3000 });
+            etAllHasil()
         });
     } catch (error) {
         console.error(error);
@@ -580,8 +581,8 @@ async function deleteDataHasil() {
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Positive Flow</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Negative Flow</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leaving Flow</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entering Flow</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Flow</th>
                                 </tr>
                             </thead>
