@@ -23,6 +23,9 @@ const listHasil = ref([]);
 const showHasil = ref(false);
 const temporaryId = ref('');
 const deleteModal = ref(false);
+const hasilDetail = ref({});
+const detailHasilModal = ref(false);
+const isDarkTheme = ref(false);
 
 onMounted(() => {
     isLoading.value = true;
@@ -55,6 +58,20 @@ async function getAllDataToCalculate() {
     listPlainDataToCalculate.value = response.data;
 }
 
+async function viewResult(id) {
+    try {
+        console.log('id ', id);
+        console.log('hasilDetail.value ', hasilDetail.value);
+        const response = await APIHasil.getDetailHasil({ _id: id });
+        console.log('hasilDetail.value ', hasilDetail.value);
+        hasilDetail.value = response.data;
+        detailHasilModal.value = true;
+        console.log("detailHasilModal.value ",detailHasilModal.value)
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 const expandAll = () => {
     const keys = {};
     const expandNode = (nodes) => {
@@ -79,32 +96,6 @@ watch(
     },
     { immediate: true }
 );
-
-//calculate data using metode promethee
-// Computed property to get normalized data
-// const normalizedData = computed(() => {
-//     if (!listPlainDataToCalculate.value.length) return [];
-
-//     return listPlainDataToCalculate.value.map((product) => {
-//         return {
-//             id_produk: product.id_produk,
-//             produk: product.produk,
-//             kategori: product.kategori,
-//             criteria: product.bobot_produk.map((criterion) => {
-//                 return {
-//                     id_kriteria: criterion.id_kriteria,
-//                     kriteria: criterion.kriteria,
-//                     value: parseFloat(criterion.sub_kriteria[0].nilai_bobot),
-//                     min_max: criterion.sub_kriteria[0].min_max,
-//                     type: criterion.sub_kriteria[0].type,
-//                     p: parseFloat(criterion.sub_kriteria[0].p),
-//                     q: parseFloat(criterion.sub_kriteria[0].q),
-//                     s: parseFloat(criterion.sub_kriteria[0].s)
-//                 };
-//             })
-//         };
-//     });
-// });
 
 const normalizedData = computed(() => {
     if (!listPlainDataToCalculate.value.length) return [];
@@ -159,67 +150,359 @@ const calculatePreference = (d, type, p, q, s) => {
 };
 
 // Calculate preference indices
+// const preferenceIndices = computed(() => {
+//     try {
+//         const products = listPlainDataToCalculate.value;
+//         const n = products.length;
+//         const subKriteriaCount = subKriteriaLength.value;
+
+//         return products.map((productI, i) => {
+//             return products.map((productJ, j) => {
+//                 if (i === j) return 0;
+
+//                 let totalPreference = 0;
+//                 let criteriaBreakdown = [];
+
+//                 productI.bobot_produk.forEach((kriteria, kritIndex) => {
+//                     let criteriaPreference = 0;
+
+//                     kriteria.sub_kriteria.forEach((subKriteria) => {
+//                         const subKriteriaJ = productJ.bobot_produk[kritIndex].sub_kriteria.find((sk) => sk.nama_sub_kriteria === subKriteria.nama_sub_kriteria);
+
+//                         const d = parseFloat(subKriteria.nilai_bobot) - parseFloat(subKriteriaJ.nilai_bobot);
+
+//                         const subPreference = calculatePreference(d, subKriteria.type, parseFloat(subKriteria.p), parseFloat(subKriteria.q), parseFloat(subKriteria.s));
+
+//                         criteriaPreference += (1 / subKriteriaCount) * subPreference;
+
+//                         criteriaBreakdown.push({
+//                             subKriteria: subKriteria.nama_sub_kriteria,
+//                             namaProduk: subKriteria.nama_bobot,
+//                             nilaiProdukI: subKriteria.nilai_bobot,
+//                             namaProdukJ: subKriteriaJ.nama_bobot,
+//                             nilaiProdukJ: subKriteriaJ.nilai_bobot,
+//                             d: d,
+//                             subPreference: subPreference
+//                         });
+//                     });
+
+//                     // eference: ${criteriaPreference}`);
+//                     totalPreference += criteriaPreference;
+//                 });
+
+//                 return totalPreference;
+//             });
+//         });
+//     } catch (error) {
+//         console.error('Error umum pada preferenceIndices:', generalError);
+//         toast.add({
+//             severity: 'error',
+//             summary: 'Error',
+//             detail: 'Terjadi kesalahan saat memproses aksi, silahkan hubungi tim IT',
+//             life: 3000
+//         });
+//         return [];
+//     }
+// });
+
 const preferenceIndices = computed(() => {
-    const products = listPlainDataToCalculate.value;
-    const n = products.length;
-    const subKriteriaCount = subKriteriaLength.value;
+    try {
+        // Validasi data awal
+        const products = listPlainDataToCalculate.value;
 
-    // console.log('Total Products:', n);
-    // console.log('Sub-Kriteria Count:', subKriteriaCount);
+        if (!products || !Array.isArray(products)) {
+            toast.add({
+                severity: 'error',
+                summary: 'Data Tidak Valid',
+                detail: 'Data produk tidak ditemukan atau format tidak sesuai',
+                life: 5000
+            });
+            activeView.value = 'data';
+            showResults.value = false;
+            return [];
+        }
 
-    return products.map((productI, i) => {
-        return products.map((productJ, j) => {
-            if (i === j) return 0;
+        if (products.length === 0) {
+            toast.add({
+                severity: 'warn',
+                summary: 'Data Kosong',
+                detail: 'Tidak ada produk untuk diproses',
+                life: 5000
+            });
+            activeView.value = 'data';
+            showResults.value = false;
+            return [];
+        }
 
-            // console.log(`Comparing Product ${i} (${productI.produk}) with Product ${j} (${productJ.produk})`);
+        const subKriteriaCount = subKriteriaLength.value;
+        if (!subKriteriaCount || subKriteriaCount <= 0) {
+            toast.add({
+                severity: 'error',
+                summary: 'Konfigurasi Error',
+                detail: 'Jumlah sub kriteria tidak valid',
+                life: 5000
+            });
+            activeView.value = 'data';
+            showResults.value = false;
+            return [];
+        }
 
-            let totalPreference = 0;
-            let criteriaBreakdown = [];
+        // Validasi struktur data sebelum pemrosesan
+        const validationResult = validateProductsStructure(products);
+        if (!validationResult.isValid) {
+            toast.add({
+                severity: 'error',
+                summary: 'Tidak Berhasil Melakukan Perhitungan',
+                detail: validationResult.message,
+                life: 6000
+            });
+            activeView.value = 'data';
+            showResults.value = false;
+            return [];
+        }
 
-            productI.bobot_produk.forEach((kriteria, kritIndex) => {
-                let criteriaPreference = 0;
+        // Jika semua validasi berhasil, lakukan perhitungan
+        return products.map((productI, i) => {
+            return products.map((productJ, j) => {
+                if (i === j) return 0;
 
-                // console.log(`Kriteria: ${kriteria.kriteria}`);
+                let totalPreference = 0;
+                let criteriaBreakdown = [];
 
-                kriteria.sub_kriteria.forEach((subKriteria) => {
-                    const subKriteriaJ = productJ.bobot_produk[kritIndex].sub_kriteria.find((sk) => sk.nama_sub_kriteria === subKriteria.nama_sub_kriteria);
+                productI.bobot_produk.forEach((kriteria, kritIndex) => {
+                    let criteriaPreference = 0;
 
-                    const d = parseFloat(subKriteria.nilai_bobot) - parseFloat(subKriteriaJ.nilai_bobot);
+                    kriteria.sub_kriteria.forEach((subKriteria) => {
+                        const subKriteriaJ = productJ.bobot_produk[kritIndex].sub_kriteria.find((sk) => sk.nama_sub_kriteria === subKriteria.nama_sub_kriteria);
 
-                    // console.log(`Sub-Kriteria: ${subKriteria.nama_sub_kriteria}`);
-                    // console.log(`Product I Value: ${subKriteria.nama_bobot} (${subKriteria.nilai_bobot})`);
-                    // console.log(`Product J Value: ${subKriteriaJ.nama_bobot} (${subKriteriaJ.nilai_bobot})`);
-                    // console.log(`Difference (d): ${d}`);
+                        const d = parseFloat(subKriteria.nilai_bobot) - parseFloat(subKriteriaJ.nilai_bobot);
+                        const subPreference = calculatePreference(d, subKriteria.type, parseFloat(subKriteria.p), parseFloat(subKriteria.q), parseFloat(subKriteria.s));
 
-                    const subPreference = calculatePreference(d, subKriteria.type, parseFloat(subKriteria.p), parseFloat(subKriteria.q), parseFloat(subKriteria.s));
+                        criteriaPreference += (1 / subKriteriaCount) * subPreference;
 
-                    // console.log(`Sub-Preference: ${subPreference}`);
-                    // console.log(subPreference);
-
-                    criteriaPreference += (1 / subKriteriaCount) * subPreference;
-
-                    criteriaBreakdown.push({
-                        subKriteria: subKriteria.nama_sub_kriteria,
-                        namaProduk: subKriteria.nama_bobot,
-                        nilaiProdukI: subKriteria.nilai_bobot,
-                        namaProdukJ: subKriteriaJ.nama_bobot,
-                        nilaiProdukJ: subKriteriaJ.nilai_bobot,
-                        d: d,
-                        subPreference: subPreference
+                        criteriaBreakdown.push({
+                            subKriteria: subKriteria.nama_sub_kriteria,
+                            namaProduk: subKriteria.nama_bobot,
+                            nilaiProdukI: subKriteria.nilai_bobot,
+                            namaProdukJ: subKriteriaJ.nama_bobot,
+                            nilaiProdukJ: subKriteriaJ.nilai_bobot,
+                            d: d,
+                            subPreference: subPreference
+                        });
                     });
+
+                    totalPreference += criteriaPreference;
                 });
 
-                // console.log(`Criteria Preference: ${criteriaPreference}`);
-                totalPreference += criteriaPreference;
+                return totalPreference;
             });
-
-            // console.log(`Total Preference: ${totalPreference}`);
-            // console.log('Criteria Breakdown:', criteriaBreakdown);
-
-            return totalPreference;
         });
-    });
+    } catch (error) {
+        console.error('Error dalam preferenceIndices:', error);
+        toast.add({
+            severity: 'error',
+            summary: 'Sistem Error',
+            detail: 'Terjadi kesalahan sistem saat memproses data. Silahkan hubungi tim IT',
+            life: 6000
+        });
+        return [];
+    }
 });
+
+// Fungsi helper untuk validasi struktur data
+function validateProductsStructure(products) {
+    try {
+        for (let i = 0; i < products.length; i++) {
+            const product = products[i];
+
+            // Validasi struktur produk
+            if (!product || typeof product !== 'object') {
+                return {
+                    isValid: false,
+                    message: `Produk ke-${i + 1} memiliki struktur yang tidak valid`
+                };
+            }
+
+            // Validasi bobot_produk
+            if (!product.bobot_produk || !Array.isArray(product.bobot_produk)) {
+                return {
+                    isValid: false,
+                    message: `Produk ke-${i + 1} tidak memiliki data bobot produk yang valid`
+                };
+            }
+
+            if (product.bobot_produk.length === 0) {
+                return {
+                    isValid: false,
+                    message: `Produk ke-${i + 1} tidak memiliki kriteria penilaian`
+                };
+            }
+
+            // Validasi setiap kriteria
+            for (let j = 0; j < product.bobot_produk.length; j++) {
+                const kriteria = product.bobot_produk[j];
+
+                if (!kriteria || typeof kriteria !== 'object') {
+                    return {
+                        isValid: false,
+                        message: `Kriteria ke-${j + 1} pada produk ke-${i + 1} tidak valid`
+                    };
+                }
+
+                // Validasi sub_kriteria
+                if (!kriteria.sub_kriteria || !Array.isArray(kriteria.sub_kriteria)) {
+                    return {
+                        isValid: false,
+                        message: `Sub kriteria pada kriteria ke-${j + 1}, produk ke-${i + 1} tidak valid`
+                    };
+                }
+
+                if (kriteria.sub_kriteria.length === 0) {
+                    return {
+                        isValid: false,
+                        message: `Sub kriteria pada kriteria ke-${j + 1}, produk ke-${i + 1} tidak boleh kosong`
+                    };
+                }
+
+                // Validasi setiap sub kriteria
+                for (let k = 0; k < kriteria.sub_kriteria.length; k++) {
+                    const subKriteria = kriteria.sub_kriteria[k];
+
+                    if (!subKriteria || typeof subKriteria !== 'object') {
+                        return {
+                            isValid: false,
+                            message: `Sub kriteria ke-${k + 1} pada kriteria ke-${j + 1}, produk ke-${i + 1} tidak valid`
+                        };
+                    }
+
+                    // Validasi field wajib
+                    if (!subKriteria.nama_sub_kriteria) {
+                        return {
+                            isValid: false,
+                            message: `Nama sub kriteria tidak ditemukan pada kriteria ke-${j + 1}, produk ke-${i + 1}`
+                        };
+                    }
+
+                    // Validasi nilai_bobot
+                    if (subKriteria.nilai_bobot === null || subKriteria.nilai_bobot === undefined) {
+                        return {
+                            isValid: false,
+                            message: `Nilai bobot tidak ditemukan untuk sub kriteria '${subKriteria.nama_sub_kriteria}' pada produk ke-${i + 1}`
+                        };
+                    }
+
+                    const nilaiBobot = parseFloat(subKriteria.nilai_bobot);
+                    if (isNaN(nilaiBobot)) {
+                        return {
+                            isValid: false,
+                            message: `Nilai bobot tidak valid untuk sub kriteria '${subKriteria.nama_sub_kriteria}' pada produk ke-${i + 1}`
+                        };
+                    }
+
+                    // Validasi parameter p, q, s
+                    if (subKriteria.p === null || subKriteria.p === undefined || isNaN(parseFloat(subKriteria.p))) {
+                        return {
+                            isValid: false,
+                            message: `Parameter 'p' tidak valid untuk sub kriteria '${subKriteria.nama_sub_kriteria}' pada produk ke-${i + 1}`
+                        };
+                    }
+
+                    if (subKriteria.q === null || subKriteria.q === undefined || isNaN(parseFloat(subKriteria.q))) {
+                        return {
+                            isValid: false,
+                            message: `Parameter 'q' tidak valid untuk sub kriteria '${subKriteria.nama_sub_kriteria}' pada produk ke-${i + 1}`
+                        };
+                    }
+
+                    if (subKriteria.s === null || subKriteria.s === undefined || isNaN(parseFloat(subKriteria.s))) {
+                        return {
+                            isValid: false,
+                            message: `Parameter 's' tidak valid untuk sub kriteria '${subKriteria.nama_sub_kriteria}' pada produk ke-${i + 1}`
+                        };
+                    }
+
+                    // Validasi type
+                    if (!subKriteria.type || typeof subKriteria.type !== 'string') {
+                        return {
+                            isValid: false,
+                            message: `Tipe sub kriteria tidak valid untuk '${subKriteria.nama_sub_kriteria}' pada produk ke-${i + 1}`
+                        };
+                    }
+                }
+            }
+        }
+
+        // Validasi konsistensi antar produk
+        const consistencyResult = validateProductsConsistency(products);
+        if (!consistencyResult.isValid) {
+            return consistencyResult;
+        }
+
+        return { isValid: true };
+    } catch (error) {
+        console.error('Error dalam validasi struktur:', error);
+        return {
+            isValid: false,
+            message: 'Terjadi kesalahan saat memvalidasi struktur data'
+        };
+    }
+}
+
+// Fungsi helper untuk validasi konsistensi antar produk
+function validateProductsConsistency(products) {
+    try {
+        if (products.length < 2) return { isValid: true };
+
+        const baseProduct = products[0];
+        const baseKriteriaCount = baseProduct.bobot_produk.length;
+
+        for (let i = 1; i < products.length; i++) {
+            const currentProduct = products[i];
+
+            // Validasi jumlah kriteria sama
+            if (currentProduct.bobot_produk.length !== baseKriteriaCount) {
+                return {
+                    isValid: false,
+                    message: `Terdapat produk yang memiliki jumlah kriteria yang berbeda`
+                };
+            }
+
+            // Validasi konsistensi setiap kriteria
+            for (let j = 0; j < baseKriteriaCount; j++) {
+                const baseKriteria = baseProduct.bobot_produk[j];
+                const currentKriteria = currentProduct.bobot_produk[j];
+
+                if (baseKriteria.sub_kriteria.length !== currentKriteria.sub_kriteria.length) {
+                    return {
+                        isValid: false,
+                        message: `Produk ke-${i + 1} memiliki jumlah sub kriteria yang berbeda pada kriteria ke-${j + 1}`
+                    };
+                }
+
+                // Validasi nama sub kriteria konsisten
+                for (let k = 0; k < baseKriteria.sub_kriteria.length; k++) {
+                    const baseSubKriteria = baseKriteria.sub_kriteria[k];
+                    const matchingSubKriteria = currentKriteria.sub_kriteria.find((sk) => sk.nama_sub_kriteria === baseSubKriteria.nama_sub_kriteria);
+
+                    if (!matchingSubKriteria) {
+                        return {
+                            isValid: false,
+                            message: `Sub kriteria '${baseSubKriteria.nama_sub_kriteria}' tidak ditemukan pada produk ke-${i + 1}, kriteria ke-${j + 1}`
+                        };
+                    }
+                }
+            }
+        }
+
+        return { isValid: true };
+    } catch (error) {
+        console.error('Error dalam validasi konsistensi:', error);
+        return {
+            isValid: false,
+            message: 'Terjadi kesalahan saat memvalidasi konsistensi data'
+        };
+    }
+}
 
 // Calculate positive and negative flows
 const flows = computed(() => {
@@ -283,7 +566,6 @@ const groupedNormalizedData = computed(() => {
 
 function showSaveModal() {
     saveModal.value = true;
-    console.log('masuk ga bang ?');
 }
 
 async function saveHasil() {
@@ -320,14 +602,13 @@ async function saveHasil() {
         month: dataMounth,
         data: listData
     };
-    console.log(data);
     try {
         await APIHasil.addhasil(data).then(() => {
             saveModal.value = false;
             isLoading.value = false;
             resetCalculation();
             toast.add({ severity: 'success', summary: 'Success', detail: 'Berhasil menyimpan hasil perhitungan', life: 3000 });
-            etAllHasil()
+            etAllHasil();
         });
     } catch (error) {
         console.error(error);
@@ -347,7 +628,7 @@ async function getAllHasil() {
         item.create_by = item.create_by;
     });
     listHasil.value = listData;
-    console.log(listHasil.value);
+    console.log('listHasil ', listHasil.value);
 }
 
 function back() {
@@ -355,14 +636,12 @@ function back() {
 }
 
 function showTableHasil() {
-    console.log('showTableHasil');
     showHasil.value = true;
 }
 
 function confirmDelete(id) {
     temporaryId.value = id;
     deleteModal.value = true;
-    console.log(temporaryId.value);
 }
 
 async function deleteDataHasil() {
@@ -379,6 +658,50 @@ async function deleteDataHasil() {
         isLoading.value = false;
         deleteModal.value = false;
         toast.add({ severity: 'error', summary: 'Error', detail: `Gagal menghapus data, ${error.response.data.message}`, life: 3000 });
+    }
+}
+
+function getCategoryColorClass(category) {
+    if (isDarkTheme.value) {
+        switch (category) {
+            case 'Seafood':
+                return 'bg-blue-900 text-blue-200';
+            case 'Sosis':
+                return 'bg-red-900 text-red-200';
+            case 'Nugget':
+                return 'bg-yellow-900 text-yellow-200';
+            case 'Bakso':
+                return 'bg-green-900 text-green-200';
+            case 'Kentang':
+                return 'bg-purple-900 text-purple-200';
+            default:
+                return 'bg-gray-900 text-gray-200';
+        }
+    } else {
+        switch (category) {
+            case 'Seafood':
+                return 'bg-blue-100 text-blue-800';
+            case 'Sosis':
+                return 'bg-red-100 text-red-800';
+            case 'Nugget':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'Bakso':
+                return 'bg-green-100 text-green-800';
+            case 'Kentang':
+                return 'bg-purple-100 text-purple-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    }
+}
+
+function getColorClass(netFlow) {
+    if (isDarkTheme.value) {
+        if (netFlow > 0) return 'bg-green-100 text-green-800';
+        return 'bg-red-100 text-red-800';
+    } else {
+        if (netFlow > 0) return 'bg-green-100 text-green-800';
+        return 'bg-red-100 text-red-800';
     }
 }
 </script>
@@ -641,8 +964,9 @@ async function deleteDataHasil() {
             <Column field="data" header="Jumlah Data"></Column>
             <Column header="Aksi">
                 <template #body="{ data }">
-                    <div class="flex justify-center gap-2">
-                        <Button label="Delete" icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-sm" @click="confirmDelete(data._id)" />
+                    <div class="flex gap-2">
+                        <Button label="Lihat Hasil" icon="pi pi-eye" class="p-button-rounded p-button-info p-button-sm" @click="viewResult(data._id)" />
+                        <Button v-if="userStore.role === 'admin'" label="Delete" icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-sm" @click="confirmDelete(data._id)" />
                     </div>
                 </template>
             </Column>
@@ -662,5 +986,55 @@ async function deleteDataHasil() {
             <Button label="Batal" icon="pi pi-times" class="p-button-text" @click="deleteModal = false" />
             <Button label="Hapus" icon="pi pi-trash" class="p-button-text" @click="deleteDataHasil" />
         </template>
+    </Dialog>
+
+    <Dialog modal header="Hasil Perhitungan" v-model:visible="detailHasilModal" closeable="true" :style="{width: '80vw', maxWidth: '800px'}" @hide="detailHasilModal = false">
+        <div class="mt-6">
+            <div class="flex justify-between mb-4 flex-col ">
+                <h3 :class="['text-lg font-semibold', isDarkTheme ? 'text-white' : 'text-gray-800']">Top Ranking Produk {{ hasilDetail.month }} {{ new Date().getFullYear() }}</h3>
+                <div :class="isDarkTheme ? 'text-gray-300' : 'text-gray-500'" class="text-sm">Dibuat oleh: {{ hasilDetail.create_by }}  ({{ hasilDetail.create_date }})</div>
+            </div>
+
+            <div :class="['rounded-xl p-4 mb-6 transition-colors', isDarkTheme ? 'bg-gray-700' : 'surface-card']">
+                <div class="overflow-x-auto">
+                    <DataTable :value="hasilDetail.data" responsiveLayout="scroll" class="p-datatable-sm" stripedRows>
+                        <Column field="rank" header="Rank">
+                            <template #body="slotProps">
+                                <span :class="isDarkTheme ? 'text-white' : ''">{{ slotProps.data.rank }}</span>
+                            </template>
+                        </Column>
+                        <Column field="product" header="Produk">
+                            <template #body="slotProps">
+                                <span :class="isDarkTheme ? 'text-white' : ''">{{ slotProps.data.product }}</span>
+                            </template>
+                        </Column>
+                        <Column field="kategori" header="Kategori">
+                            <template #body="slotProps">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium" :class="getCategoryColorClass(slotProps.data.kategori)">{{ slotProps.data.kategori }}</span>
+                            </template>
+                        </Column>
+                        <Column field="netFlow" header="Net Flow">
+                            <template #body="slotProps">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium" :class="getColorClass(slotProps.data.netFlow)" severity="info">
+                                    {{ slotProps.data.netFlow.toFixed(4) }}
+                                </span>
+                            </template>
+                        </Column>
+                    </DataTable>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div :class="['mt-4 p-4 rounded-lg transition-colors card', isDarkTheme ? 'bg-gray-700' : 'bg-white']">
+                <h4 :class="isDarkTheme ? 'text-gray-200' : 'text-gray-700'" class="text-sm font-medium mb-2">Kategori Produk:</h4>
+                <div class="flex flex-wrap gap-2">
+                    <span :class="getCategoryColorClass('Seafood')">Seafood</span>
+                    <span :class="getCategoryColorClass('Sosis')">Sosis</span>
+                    <span :class="getCategoryColorClass('Nugget')">Nugget</span>
+                    <span :class="getCategoryColorClass('Bakso')">Bakso</span>
+                    <span :class="getCategoryColorClass('Kentang')">Kentang</span>
+                </div>
+            </div>
+        </div>
     </Dialog>
 </template>

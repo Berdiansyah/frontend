@@ -28,9 +28,11 @@ axios.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        console.log('Error response:', error.response);
+        console.log('originalRequest._retry:', originalRequest);
 
         // Pastikan error adalah 556 dan bukan request refresh token sebelumnya
-        if (error.response?.status === 556 && !originalRequest._retry) {
+        if (error.response?.status === 556) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });

@@ -85,7 +85,7 @@ async function submitForm() {
         // Request ke backend untuk reset password
         await APIAuth.resetPassword({ token: getToken, newPassword: inputReNewPassword.value });
         successFlag.value = true;
-    } catch (error) {   
+    } catch (error) {
         console.error(error);
         toast.add({ severity: 'error', summary: 'Error', detail: error.response.data.message, life: 3000 });
         isLoading.value = false;
@@ -134,7 +134,7 @@ function buttonSuccess() {
                             </g>
                         </svg>
                         <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">Reset Password</div>
-                        <span class="text-muted-color font-medium">Input new password for you accound</span>
+                        <span class="text-muted-color font-medium">Input new password for your account</span>
                     </div>
 
                     <form @submit.prevent="submitForm()">
